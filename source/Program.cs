@@ -237,6 +237,7 @@ namespace boomble
       var ExistsExpr = expr as ExistsExpr;
       var NAryExpr = expr as NAryExpr;
       var LetExpr = expr as LetExpr;
+      var LambdaExpr = expr as LambdaExpr;
       
       if (ForAllExpr != null)
       {
@@ -248,6 +249,12 @@ namespace boomble
       {
         ((ExistsExpr) expr).Attributes=Elaborate_Qid(((ExistsExpr) expr).Attributes);
         var body = ((ExistsExpr) expr).Body;
+        Assign_Label_To_Expression(ref body);
+      }
+      else if (LambdaExpr!=null)
+      {
+        ((LambdaExpr) expr).Attributes=Elaborate_Qid(((LambdaExpr) expr).Attributes);
+        var body = ((LambdaExpr) expr).Body;
         Assign_Label_To_Expression(ref body);
       }
       else if (LetExpr!=null)
@@ -263,6 +270,15 @@ namespace boomble
           var tmp_expr = tmp[i];
           Assign_Label_To_Expression(ref tmp_expr);
         }
+      }
+    }
+
+    public static void Assign_Label_To_Set_Of_Expressions(ref List<Expr> expr)
+    {
+      for (int i = 0; i < expr.Count; i++)
+      {
+        var tmp = expr[i];
+        Assign_Label_To_Expression(ref tmp);
       }
     }
 
@@ -307,6 +323,7 @@ namespace boomble
             Cmd c = implemDecl.Blocks.ToList()[i].Cmds.ToList()[j];
             AssertCmd artc = c as AssertCmd;
             AssumeCmd amec = c as AssumeCmd;
+            AssignCmd assc = c as AssignCmd;
             Expr tmp = null;
             if (artc != null)
             {
@@ -315,6 +332,11 @@ namespace boomble
             else if (amec != null)
             {
               tmp = amec.Expr;
+            }
+            else if (assc != null)
+            {
+              var list_temp = assc.Rhss.ToList();
+              Assign_Label_To_Set_Of_Expressions(ref list_temp);
             }
             Assign_Label_To_Expression(ref tmp);
           }

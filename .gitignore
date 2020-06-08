@@ -7,3 +7,4 @@ obj/*
 *.dll
 parallel/.idea/
 app.config
+*.blob
