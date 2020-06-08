@@ -1,2 +1,0 @@
-// RUN: %boogie -errorTrace:0 -traceCaching:1 -verifySnapshots:2 -verifySeparately -infer:j Snapshots29.bpl > "%t"
-// RUN: %diff "%s.expect" "%t"
