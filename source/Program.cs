@@ -106,7 +106,7 @@ namespace boomble
       }
 
       Program program = ExecutionEngine.ParseBoogieProgram(fileList, false);
-      var tuple = Shuffler.Get_N_Permutations_of_Program(program, 1000);
+      var tuple = Shuffler.Get_N_Permutations_of_Program(program, 5);
       var list_of_program = tuple.Item1.ToList();
       var list_of_order = tuple.Item2.ToList();
 
@@ -114,8 +114,11 @@ namespace boomble
 
       if (Directory.Exists(outputpath))
       {
-        Directory.Delete(outputpath, true);
+        Console.WriteLine("Result folder is not empty!");
+        System.Environment.Exit(-1);
       }
+      
+      //Directory.Delete(outputpath, true);
 
       Directory.CreateDirectory(outputpath);
       
