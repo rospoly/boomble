@@ -1,6 +1,7 @@
 import shutil
 from multiprocessing.pool import ThreadPool, Pool
 import os
+import random
 import subprocess
 import shlex
 import time
@@ -8,7 +9,19 @@ import time
 def process_file(file_folder, file_name, log_folder):
 	print(file_name)
 	name_no_ext=file_name.split(".")[0]
-	f="boogie -trace -proverLog:"+log_folder+name_no_ext+".smt2 -traceTimes -useArrayTheory "+file_folder+file_name
+	random_seed=str(random.randint(0, 100))
+
+	f=("boogie "
+	   	"-p:O:sat.random_seed="+random_seed+" "
+		"-p:O:nlsat.seed="+random_seed+" "
+		"-p:O:fp.spacer.random_seed="+random_seed+" "
+		"-p:O:smt.random_seed="+random_seed+" "
+		"-p:O:sls.random_seed="+random_seed+" "
+		"-trace "
+		"-proverLog:"+log_folder+name_no_ext+".smt2 "
+		"-traceTimes "
+		"-useArrayTheory "+file_folder+file_name)
+
 	log_file=open(log_folder+name_no_ext+"_boogie.log","w+")
 	log_file.writelines(f)
 	proc_run = subprocess.Popen(shlex.split(f), stdout=log_file, stderr=log_file)
@@ -18,7 +31,21 @@ def process_file(file_folder, file_name, log_folder):
 	log_file.writelines("###Execution time: "+str(end-start))
 	log_file.close()
 	###########################################
-	f = "z3 smt.qi.profile=true " + log_folder + name_no_ext + ".smt2"
+	f = ("z3 "
+		 "-v:100 "
+		 "-st "
+		 "smt.qi.profile=true "
+		 "fp.spacer.iuc.debug_proof=true "
+		 "fp.datalog.output_profile=true "
+		 "smt.mbqi.trace=true "
+		 "sat.local_search_dbg_flips=true "
+		 "sat.random_seed=" + random_seed + " "
+		 "nlsat.seed=" + random_seed + " "
+		 "fp.spacer.random_seed=" + random_seed + " "
+		 "smt.random_seed=" + random_seed + " "
+		 "sls.random_seed=" + random_seed + " "
+		 + log_folder + name_no_ext + ".smt2")
+
 	log_file = open(log_folder + name_no_ext + "_z3_profile.profile", "w+")
 	log_file.writelines("\n\n")
 	log_file.writelines("###" + f + "\n")
