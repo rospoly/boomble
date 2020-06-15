@@ -6,11 +6,9 @@ import subprocess
 import shlex
 import time
 
-def process_file(file_folder, file_name, log_folder):
+def process_file(random_seed, file_folder, file_name, log_folder):
 	print(file_name)
 	name_no_ext=file_name.split(".")[0]
-	random_seed=str(random.randint(0, 100))
-
 	f=("boogie "
 	   	"-p:O:sat.random_seed="+random_seed+" "
 		"-p:O:nlsat.seed="+random_seed+" "
@@ -68,10 +66,11 @@ if os.path.exists(log):
 
 os.makedirs(log, exist_ok=True)
 
+random_seed = str(random.randint(0, 100))
 file_set = sorted(os.listdir("../results/"))
 for file_name in file_set:
 	if file_name.endswith(".bpl"):
-		pool.apply_async(process_file, ["../results/", file_name, log])
+		pool.apply_async(process_file, [random_seed, "../results/", file_name, log])
 
 pool.close()
 pool.join()
