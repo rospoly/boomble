@@ -8,11 +8,11 @@ from matplotlib.pyplot import cm
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 20})
 
-def elaborateResults():
+def elaborateResults(log_folder):
     name_time={}
-    for file_name in os.listdir("../log/"):
+    for file_name in os.listdir(log_folder):
         if file_name.endswith(".log"):
-            tmp=open("../log/"+file_name,"r").readlines()
+            tmp=open(log_folder+file_name,"r").readlines()
             for line in tmp:
                 if "time:" in line:
                     clean_file_name=(line.split("Execution time:")[0]).split("/")[-1].replace("#","")
@@ -72,8 +72,8 @@ def get_partial_distribution_given_vector(list, percentage):
     i=min(i, len(cum_vector)-1)
     return i
 
-def get_chunk_of_shuffles_given_percentage(percentage, reverse):
-    name_time=elaborateResults()
+def get_chunk_of_shuffles_given_percentage(log_folder, percentage, reverse):
+    name_time=elaborateResults(log_folder)
     view = [(float(value),key) for key,value in name_time.items()]
     x_val=[]
     y_val=[]
@@ -84,20 +84,10 @@ def get_chunk_of_shuffles_given_percentage(percentage, reverse):
     i=get_partial_distribution_given_vector(y_val,percentage)+1
     return x_val[0:i], y_val[0:i]
 
-def get_plot_exe_time_boogie(x_val, y_val):
-    plt.figure()
-    plt.plot(x_val, y_val, '-o', color='blue', label="boogie")
-    problems=len(x_val)
-    plt.xticks([0, int(problems/4),int(problems/2), int((problems*3)/4), int(problems)], ["0", str(int(problems/4)), str(int(problems/2)), str(int((problems*3)/4)),str(int(problems))])
-    plt.title("exe time (boogie)")
-    plt.legend()
-    plt.ylabel('Time (sec)')
-    plt.xlabel('programs')
-
-def get_plot_exe_time_z3_vs_boogie():
+def get_plot_exe_time_z3_vs_boogie(log_folder):
     plt.figure()
     plt.title("Exe time boogie vs z3 (with profile)")
-    name_time=elaborateResults()
+    name_time=elaborateResults(log_folder)
     view = [(float(value),key) for key,value in name_time.items()]
     last_chunk=int(len(view)/1.0)
     filename_val=[]
@@ -105,7 +95,7 @@ def get_plot_exe_time_z3_vs_boogie():
     z3_val=[]
 
     for key,val in sorted(view)[-last_chunk:]:
-        z3_key=get_exe_time_from_z3_profiling("../log/", val.split(".")[0]+"_z3_profile.profile")
+        z3_key=get_exe_time_from_z3_profiling(log_folder, val.split(".")[0]+"_z3_profile.profile")
         if z3_key != -1:
             filename_val.append(val)
             boogie_val.append(float(key))
@@ -121,7 +111,7 @@ def get_plot_exe_time_z3_vs_boogie():
 
 
 def get_set_of_worst_vcs(log_folder, percentagePrograms, percentageVCs):
-    x_val, y_val = get_chunk_of_shuffles_given_percentage(percentagePrograms, reverse=True)
+    x_val, y_val = get_chunk_of_shuffles_given_percentage(log_folder, percentagePrograms, reverse=True)
     ret={}
     for file_name in x_val:
         name_of_vcs, exe_times, orig_indxs = get_vcs_in_exe_time_order(log_folder, file_name.split(".")[0] + "_boogie.log")
@@ -168,8 +158,8 @@ def check_profiling_completes(logfolder,filename):
         return True
     return False
 
-def global_quantifiers_instantiation_analysis(percentage, original_file):
-    if not check_profiling_completes("../log/", original_file + "_z3_profile.profile"):
+def global_quantifiers_instantiation_analysis(log_folder, original_file, percentage):
+    if not check_profiling_completes(log_folder, original_file + "_z3_profile.profile"):
         print("File picked for comparison did not complete profiling")
         exit(-1)
     x_val, y_val = get_chunk_of_shuffles_given_percentage(percentage, reverse=False)
@@ -184,10 +174,10 @@ def global_quantifiers_instantiation_analysis(percentage, original_file):
     program_names = []
     for ind, file_name in enumerate(x_val):
         file_name = file_name.split(".")[0] + "_z3_profile.profile"
-        if check_profiling_completes("../log/",file_name):
+        if check_profiling_completes(log_folder,file_name):
             if file_name==original_file.split("_")[0]+".bpl":
                 original_index=ind
-            plus,equal,minus,more,less=compare_z3_profiles("../log/", original_file+"_z3_profile.profile", file_name)
+            plus,equal,minus,more,less=compare_z3_profiles(log_folder, original_file+"_z3_profile.profile", file_name)
             pos_values.append(plus)
             neg_values.append(minus)
             more_values.append(more)
@@ -242,11 +232,11 @@ def dump_partial_quantifiers_to_file(logfolder, filename, index, partial_quantif
     return (filename + "_z3_profile_"+str(index)+".syntprofile")
 
 def specific_quantifiers_instantiation_analysis(log_folder, original_file, percentagePrograms, percentageVCs):
-    if not check_profiling_completes("../log/", original_file + "_z3_profile.profile"):
+    if not check_profiling_completes(log_folder, original_file + "_z3_profile.profile"):
         print("File picked for comparison did not complete profiling")
         exit(-1)
-    worst_dict_file_vcs_indexs = get_set_of_worst_vcs("../log/", percentagePrograms, 1)
-    ordered_filenames, ordered_exe_time = get_chunk_of_shuffles_given_percentage(1, reverse=False)
+    worst_dict_file_vcs_indexs = get_set_of_worst_vcs(log_folder, percentagePrograms, 1)
+    ordered_filenames, ordered_exe_time = get_chunk_of_shuffles_given_percentage(log_folder, 1, reverse=False)
     plot_index=ordered_filenames.index(original_file+".bpl")
     vcs_counter={}
     plt.figure(figsize=(17, 10))
@@ -260,7 +250,7 @@ def specific_quantifiers_instantiation_analysis(log_folder, original_file, perce
             else:
                 vcs_counter[tmp_name]=1
     most_common_vcs=sorted(vcs_counter.items(), key=lambda x: x[1], reverse=True)
-    all_dict_file_vcs_indexs = get_set_of_worst_vcs("../log/", 1, 1)
+    all_dict_file_vcs_indexs = get_set_of_worst_vcs(log_folder, 1, 1)
     color = iter(cm.rainbow(np.linspace(0, 1, len(most_common_vcs))))
     for index_common_vc,(vc_common,cntr) in enumerate(most_common_vcs):
         program_names = []
@@ -276,7 +266,7 @@ def specific_quantifiers_instantiation_analysis(log_folder, original_file, perce
                 continue
         for ord_filename in ordered_filenames:
             file=ord_filename.split(".")[0]
-            if check_profiling_completes("../log/", file+"_z3_profile.profile"):
+            if check_profiling_completes(log_folder, file+"_z3_profile.profile"):
                 program_names.append(file)
                 for vc_all, time, index in all_dict_file_vcs_indexs[file]:
                     if vc_common==vc_all:
@@ -329,9 +319,7 @@ def specific_quantifiers_instantiation_analysis(log_folder, original_file, perce
         plt.title("Analysis of worst VCs")
     plt.legend()
 
-
-#get_plot_exe_time_boogie()
 #get_plot_exe_time_z3_vs_boogie()
-#global_quantifiers_instantiation_analysis(1.0, "tmp19")
-specific_quantifiers_instantiation_analysis("../log/", "tmp19", 0.6, 0.5)
+#global_quantifiers_instantiation_analysis("../log_bkp", "tmp19", 1.0)
+specific_quantifiers_instantiation_analysis("../log_bkp/", "tmp19", 0.6, 0.5)
 plt.show()
