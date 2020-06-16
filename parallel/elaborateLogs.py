@@ -154,7 +154,7 @@ def get_vcs_in_exe_time_order(log_folder, file_name):
 
 def check_profiling_completes(logfolder,filename):
     prof_file=open(logfolder+filename, "r").readlines()
-    if "###Execution time:" in prof_file[::-1][0]:
+    if prof_file and "###Execution time:" in prof_file[::-1][0]:
         return True
     return False
 
@@ -162,7 +162,7 @@ def global_quantifiers_instantiation_analysis(log_folder, original_file, percent
     if not check_profiling_completes(log_folder, original_file + "_z3_profile.profile"):
         print("File picked for comparison did not complete profiling")
         exit(-1)
-    x_val, y_val = get_chunk_of_shuffles_given_percentage(percentage, reverse=False)
+    x_val, y_val = get_chunk_of_shuffles_given_percentage(log_folder, percentage, reverse=False)
     plt.figure(figsize=(17, 10))
     #original_file="tmp19"
     original_index=-1
@@ -184,7 +184,7 @@ def global_quantifiers_instantiation_analysis(log_folder, original_file, percent
             less_values.append(less)
             equal_values.append(equal)
             program_names.append(file_name)
-
+            print(file_name, y_val[ind], plus, minus)
     x_enumerate=range(0,len(program_names))
     plt.bar(x_enumerate, pos_values, align='center', color='blue', label="more instantiations")
     plt.bar(x_enumerate, neg_values, align='center', color='red', label="less instantiations")
@@ -212,14 +212,19 @@ def global_quantifiers_instantiation_analysis(log_folder, original_file, percent
     plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
     plt.ylabel('abs num. of quant. instantiations')
     plt.xlabel('programs (sort by exe time)')
-    plt.ylim([-2.5*10**5, 10**6])
+    plt.ylim([-2.5*10**5, 2*10**6])
     plt.title(original_file.split(".")[0])
     plt.legend()
 
 def extract_quantifiers_given_index_in_profile(logfolder, filename, index):
     profile = open(logfolder+filename+"_z3_profile.profile", "r").read()
-    pattern="#####"
-    vcs_sections=profile.replace("unsat", pattern).replace("sat", pattern).split(pattern)
+    pattern="#####SEPARATOR#####SEPARATOR#####"
+    vcs_sections=(profile.replace("\r\nunsat\r\n", pattern)
+                         .replace("\nunsat\n", pattern)
+                         .replace("\r\nunknown\r\n", pattern)
+                         .replace("\nunknown\n", pattern)
+                         .replace("\r\nsat\r\n", pattern)
+                         .replace("\nsat\n", pattern).split(pattern))
     if index < len(vcs_sections):
         return vcs_sections[index]
     else:
@@ -263,7 +268,7 @@ def specific_quantifiers_instantiation_analysis(log_folder, original_file, perce
         for orig_vs, orig_time, orig_index in all_dict_file_vcs_indexs[original_file]:
             if orig_vs == vc_common:
                 original_index = orig_index
-                continue
+                break
         for ord_filename in ordered_filenames:
             file=ord_filename.split(".")[0]
             if check_profiling_completes(log_folder, file+"_z3_profile.profile"):
@@ -319,7 +324,7 @@ def specific_quantifiers_instantiation_analysis(log_folder, original_file, perce
         plt.title("Analysis of worst VCs")
     plt.legend()
 
-#get_plot_exe_time_z3_vs_boogie()
-#global_quantifiers_instantiation_analysis("../log_bkp", "tmp19", 1.0)
-specific_quantifiers_instantiation_analysis("../log_bkp/", "tmp19", 0.6, 0.5)
+#get_plot_exe_time_z3_vs_boogie("../log_seed/")
+global_quantifiers_instantiation_analysis("../log_seed/", "tmp345", 1.0)
+#specific_quantifiers_instantiation_analysis("../log_seed/", "tmp345", 0.7, 0.3)
 plt.show()
