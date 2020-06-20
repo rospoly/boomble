@@ -16,19 +16,27 @@ namespace boomble
   {
     static int Main(string[] args)
     {
-      Console.WriteLine("Hello World!");
-
       Contract.Requires(cce.NonNullElements(args));
 
       ExecutionEngine.printer = new ConsolePrinter();
 
+      CommandLineOptionsBoomble.Install(new CommandLineOptionsBoomble());
       CommandLineOptions.Install(new CommandLineOptions());
-
-      CommandLineOptions.Clo.RunningBoogieFromCommandLine = true;
-      if (!CommandLineOptions.Clo.Parse(args))
+      
+      var boogie_args=CommandLineOptionsBoomble.Clo_Boomble.Parse(args);
+      
+      if (boogie_args.Length==0)
+      {
+        ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: No input files were specified.");
+        goto END;
+      }
+      
+      if (!CommandLineOptions.Clo.Parse(boogie_args))
       {
         goto END;
       }
+      
+      CommandLineOptions.Clo.RunningBoogieFromCommandLine = true;
 
       if (CommandLineOptions.Clo.Files.Count == 0)
       {
@@ -54,7 +62,7 @@ namespace boomble
       if (CommandLineOptions.Clo.ShowEnv == CommandLineOptions.ShowEnvironment.Always)
       {
         Console.WriteLine("---Command arguments");
-        foreach (string arg in args)
+        foreach (string arg in boogie_args)
         {
           Contract.Assert(arg != null);
           Console.WriteLine(arg);
@@ -106,7 +114,7 @@ namespace boomble
       }
 
       Program program = ExecutionEngine.ParseBoogieProgram(fileList, false);
-      var tuple = Shuffler.Get_N_Permutations_of_Program(program, 5);
+      var tuple = Shuffler.Get_N_Permutations_of_Program(program, CommandLineOptionsBoomble.Clo_Boomble.N, CommandLineOptionsBoomble.Clo_Boomble.NoMutation);
       var list_of_program = tuple.Item1.ToList();
       var list_of_order = tuple.Item2.ToList();
 
@@ -158,7 +166,7 @@ namespace boomble
 
   public class Shuffler
   {
-    public static (IEnumerable<Program>, List<List<int>>) Get_N_Permutations_of_Program(Program program, int n)
+    public static (IEnumerable<Program>, List<List<int>>) Get_N_Permutations_of_Program(Program program, int n, bool just_copy)
     {
 
       var permutations_list = new List<Program>();
@@ -174,7 +182,7 @@ namespace boomble
       for (int i = 0; i < n_permutations; i++)
       {
         Program new_program = (Program) program.Clone_Empty_declarations();
-        List<int> perm = GetOneRandomPermutation(list_of_numbers);
+        List<int> perm = GetOneRandomPermutation(list_of_numbers, just_copy);
         list_of_permutation.Add(perm);
         List<Declaration> tmp = GetDeclarationsGivenPermutation(list_of_decl.ToList(), perm);
         new_program.AddTopLevelDeclarations(tmp);
@@ -194,16 +202,19 @@ namespace boomble
       return ret;
     }
 
-    public static List<int> GetOneRandomPermutation(List<int> input_list)
+    public static List<int> GetOneRandomPermutation(List<int> input_list, bool just_copy)
     {
       Random random = new Random();
       var list = new List<int>(input_list);
-      int n = list.Count();
-      while (n > 1)
+      if (!just_copy)
       {
-        n--;
-        int i = random.Next(n + 1);
-        (list[i], list[n]) = (list[n], list[i]);
+        int n = list.Count();
+        while (n > 1)
+        {
+          n--;
+          int i = random.Next(n + 1);
+          (list[i], list[n]) = (list[n], list[i]);
+        }
       }
 
       return list;
