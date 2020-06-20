@@ -25,9 +25,8 @@ Please note that in case the folder "results" already exists, boomble does not o
 and returns an error message. 
 
 # run the quantifier analysis
-1) in the folder `/parallel` in the home directory of boomble there are two Python3 scripts:
-    1) `parAnalysis` runs boogie and z3 (with profiling and log enabled). 
-    The tool is a standalone script and it has a dedicate parser with usefull message and `-help` option. 
-    Just run `python3 parAnalysis.py`.
-    2) `elaborateLogs.py` runs the quantifier instantiations analysis on the logs produced by `parAnalysis`. 
-    (TODO: parser with help message)
+In the folder `/parallel` in the home directory of boomble there are two Python3 scripts:
+
+1) `parAnalysis` runs boogie and z3 (with profiling and log enabled). The tool is a standalone script and it has a dedicate parser with usefull message and `-help` option. Just run `python3 parAnalysis.py`.
+
+2) `elaborateLogs.py` runs the quantifier instantiations analysis on the logs produced by `parAnalysis`. (TODO: parser with help message)
