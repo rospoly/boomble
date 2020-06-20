@@ -1,13 +1,23 @@
+import multiprocessing
 import shutil
+import sys
 from multiprocessing.pool import ThreadPool, Pool
 import os
 import random
 import subprocess
 import shlex
 import time
+import argparse
+
+class MyParser(argparse.ArgumentParser):
+   def error(self, message):
+      sys.stderr.write('error: %s\n' % message)
+      self.print_help()
+      sys.exit(2)
+
 
 def process_file(random_seed, file_folder, file_name, log_folder):
-	print(file_name)
+	print("Currently analyzing: "+str(file_name))
 	name_no_ext=file_name.split(".")[0]
 	f=("boogie "
 	   	"-p:O:sat.random_seed="+random_seed+" "
@@ -30,7 +40,7 @@ def process_file(random_seed, file_folder, file_name, log_folder):
 	log_file.close()
 	###########################################
 	f = ("z3 "
-		 "-v:100 "
+		 "-v:10 "
 		 "-st "
 		 "smt.qi.profile=true "
 		 "fp.spacer.iuc.debug_proof=true "
@@ -53,24 +63,37 @@ def process_file(random_seed, file_folder, file_name, log_folder):
 	end = time.time()
 	log_file.writelines("###Execution time: " + str(end - start))
 	log_file.close()
+	print("Done with : " + str(file_name))
 	############################################
 
-pool = Pool(processes=6, maxtasksperchild=3)
+parser = MyParser(description='Run Boogie and Z3 on a set of programs. By default the analysis is done in parallel using all the available cores.')
+parser.add_argument('res', type=str, metavar='<path_to_boogie>',
+                    help='the path to the folder with the boogie programs to analyze')
+parser.add_argument('log', type=str, metavar='<path_for_logs>',
+                    help='the path where to dump the log files (the folder has to be empty)')
+parser.add_argument('-seed', type=int, metavar='<seed>',
+                    help='the seed to use in z3 (default 0)', default=0)
 
-log = "../log/"
+args = parser.parse_args()
+
+pool = Pool(processes=multiprocessing.cpu_count(), maxtasksperchild=2)
+
+log = args.log
+results = args.res
+random_seed = str(args.seed)
+
 if os.path.exists(log):
 	folder = os.listdir(log)
 	if len(folder) > 0:
 		print("The log folder is not empty")
 		exit(-1)
-
 os.makedirs(log, exist_ok=True)
 
-random_seed = str(random.randint(0, 100))
-file_set = sorted(os.listdir("../results/"))
+file_set = sorted(os.listdir(results))
+
 for file_name in file_set:
 	if file_name.endswith(".bpl"):
-		pool.apply_async(process_file, [random_seed, "../results/", file_name, log])
+		pool.apply_async(process_file, [random_seed, results, file_name, log])
 
 pool.close()
 pool.join()
