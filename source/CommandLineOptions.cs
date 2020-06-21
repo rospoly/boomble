@@ -14,10 +14,17 @@ namespace boomble
           public int N;
           public bool NoMutation;
 
-          public CommandLineOptionsBoomble() : base("Boomble", "Scrumbler for Boogie")
+          public CommandLineOptionsBoomble() : base("Boomble", "scrumbler for Boogie")
           {
               N = 10;
               NoMutation = false;
+          }
+          
+          public override string/*!*/ Version {
+              get {
+                  Contract.Ensures(Contract.Result<string>() != null);
+                  return ToolName + ": " + DescriptiveToolName; // + VersionSuffix;
+              }
           }
           
           private static CommandLineOptionsBoomble clo_boomble;

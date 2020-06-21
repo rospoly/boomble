@@ -56,7 +56,8 @@ namespace boomble
 
       if (!CommandLineOptions.Clo.DontShowLogo)
       {
-        Console.WriteLine(CommandLineOptions.Clo.Version);
+        //Console.WriteLine(CommandLineOptions.Clo.Version);
+        Console.WriteLine(CommandLineOptionsBoomble.Clo_Boomble.Version);
       }
 
       if (CommandLineOptions.Clo.ShowEnv == CommandLineOptions.ShowEnvironment.Always)
@@ -132,9 +133,12 @@ namespace boomble
       
       for (int i = 0; i < list_of_program.Count; i++)
       {
-        var file_name = "tmp" + i + ".bpl";
+        var file_name = "shuffle" + i + ".bpl";
         ExecutionEngine.PrintBplFile(outputpath + file_name, list_of_program[i], false);
       }
+      
+      Console.WriteLine("Shuffles dumped in folder results.");
+
       
       return 0;
 
