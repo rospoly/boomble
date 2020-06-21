@@ -124,7 +124,7 @@ namespace boomble
       if (Directory.Exists(outputpath))
       {
         Console.WriteLine("Result folder is not empty!");
-        System.Environment.Exit(-1);
+        goto END;
       }
       
       //Directory.Delete(outputpath, true);
