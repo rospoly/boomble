@@ -5,4 +5,5 @@ obj/*
 *.cache
 *.dll
 parallel/.idea/
+trace/.idea/
 *.blob
