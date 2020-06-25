@@ -1,6 +1,8 @@
+import argparse
 import os
 import shlex
 import subprocess
+import sys
 import time
 import numpy as np
 import random
@@ -8,23 +10,35 @@ from matplotlib.pyplot import cm
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 20})
 
+class MyParser(argparse.ArgumentParser):
+   def error(self, message):
+      sys.stderr.write('error: %s\n' % message)
+      self.print_help()
+      sys.exit(2)
+
 def elaborateResults(log_folder):
     name_time={}
     for file_name in os.listdir(log_folder):
         if file_name.endswith(".log"):
-            tmp=open(log_folder+file_name,"r").readlines()
-            for line in tmp:
-                if "time:" in line:
+            file=open(log_folder+file_name,"r")
+            tmp=file.readlines()
+            for line in tmp[::-1]:
+                if "###Execution time:" in line:
                     clean_file_name=(line.split("Execution time:")[0]).split("/")[-1].replace("#","")
-                    name_time[clean_file_name]=line.split("Execution time:")[1]
+                    name_time[clean_file_name]=line.split("###Execution time:")[1]
+                    break
+            file.close()
     return name_time
 
 def get_exe_time_from_z3_profiling(log_folder, file_name):
-    tmp = open(log_folder + file_name, "r").readlines()
+    file = open(log_folder + file_name, "r")
+    tmp=file.readlines()
     exe_time=-1
-    for line in tmp:
+    for line in tmp[::-1]:
         if "###Execution time:" in line:
             exe_time = line.split("Execution time:")[1]
+            break
+    file.close()
     return float(exe_time)
 
 def get_number_instances_line_qdiff(line):
@@ -93,20 +107,22 @@ def get_plot_exe_time_z3_vs_boogie(log_folder):
     filename_val=[]
     boogie_val=[]
     z3_val=[]
-
     for key,val in sorted(view)[-last_chunk:]:
         z3_key=get_exe_time_from_z3_profiling(log_folder, val.split(".")[0]+"_z3_profile.profile")
         if z3_key != -1:
             filename_val.append(val)
             boogie_val.append(float(key))
             z3_val.append(float(z3_key))
-
+    log=open(log_folder+"0_exe_time.log", "w+")
+    for index, val in enumerate(filename_val):
+        log.write(val+", boogie: "+str(boogie_val[index])+", z3: "+str(z3_val[index])+"\n")
+    log.close()
     plt.plot(range(0, len(filename_val)), boogie_val, '-o', color="blue", label="boogie")
     plt.plot(range(0, len(filename_val)), z3_val, '-o', color="red", label="z3")
     plt.ylabel('Time (sec)')
     plt.xlabel('programs')
     len_comparison=len(boogie_val)
-    plt.xticks([0, int(len_comparison/4),int(len_comparison/2), int((len_comparison*3)/4), int(len_comparison)], ["0", str(int(len_comparison/4)), str(int(len_comparison/2)), str(int((len_comparison*3)/4)),str(int(len_comparison))])
+    plt.xticks([])
     plt.legend()
 
 
@@ -136,7 +152,7 @@ def get_vcs_in_exe_time_order(log_folder, file_name):
         init_time=None
         end_time = None
         for line in cond.splitlines():
-            if "Verifying" in line:
+            if "Verifying" in line and "..." in line:
                 name_of_vc=(line.split("Verifying")[1]).split("...")[0]
             elif "Starting implementation verification" in line:
                 init_time=float((line.split("[")[1]).split("s")[0])
@@ -158,13 +174,12 @@ def check_profiling_completes(logfolder,filename):
         return True
     return False
 
-def global_quantifiers_instantiation_analysis(log_folder, original_file, percentage):
+def global_quantifiers_instantiation_analysis(log_folder, original_file, percentage, debug=False):
     if not check_profiling_completes(log_folder, original_file + "_z3_profile.profile"):
-        print("File picked for comparison did not complete profiling")
+        print("File picked for comparison did not complete profiling.")
         exit(-1)
     x_val, y_val = get_chunk_of_shuffles_given_percentage(log_folder, percentage, reverse=False)
     plt.figure(figsize=(17, 10))
-    #original_file="tmp19"
     original_index=-1
     pos_values=[]
     neg_values=[]
@@ -175,7 +190,7 @@ def global_quantifiers_instantiation_analysis(log_folder, original_file, percent
     for ind, file_name in enumerate(x_val):
         file_name = file_name.split(".")[0] + "_z3_profile.profile"
         if check_profiling_completes(log_folder,file_name):
-            if file_name==original_file.split("_")[0]+".bpl":
+            if file_name==original_file+ "_z3_profile.profile":
                 original_index=ind
             plus,equal,minus,more,less=compare_z3_profiles(log_folder, original_file+"_z3_profile.profile", file_name)
             pos_values.append(plus)
@@ -184,7 +199,6 @@ def global_quantifiers_instantiation_analysis(log_folder, original_file, percent
             less_values.append(less)
             equal_values.append(equal)
             program_names.append(file_name)
-            print(file_name, y_val[ind], plus, minus)
     x_enumerate=range(0,len(program_names))
     plt.bar(x_enumerate, pos_values, align='center', color='blue', label="more instantiations")
     plt.bar(x_enumerate, neg_values, align='center', color='red', label="less instantiations")
@@ -207,12 +221,12 @@ def global_quantifiers_instantiation_analysis(log_folder, original_file, percent
             else:
                 plt.scatter(ind, y=neg_values[ind], color='red', s=40)
 
-    plt.plot([original_index, original_index], [min(neg_values), max(pos_values)], color="black", linewidth=3, linestyle='dashed', label="mutation 0")
+    plt.plot([original_index, original_index], [min(neg_values), max(pos_values)], color="black", linewidth=3, linestyle='dashed', label="mutation "+original_file)
     plt.xticks([])
     plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
     plt.ylabel('abs num. of quant. instantiations')
     plt.xlabel('programs (sort by exe time)')
-    plt.ylim([-2.5*10**5, 2*10**6])
+    plt.ylim([min(neg_values), max(pos_values)])
     plt.title(original_file.split(".")[0])
     plt.legend()
 
@@ -236,7 +250,29 @@ def dump_partial_quantifiers_to_file(logfolder, filename, index, partial_quantif
     profile.close()
     return (filename + "_z3_profile_"+str(index)+".syntprofile")
 
-def specific_quantifiers_instantiation_analysis(log_folder, original_file, percentagePrograms, percentageVCs):
+
+def print_debug_info(log_folder, all_dict_file_vcs_indexs):
+    debug_file=open(log_folder+"0_debug_statistics.txt","w+")
+    res={}
+    for file_name in all_dict_file_vcs_indexs:
+        name_of_vcs, exe_times, orig_indxs = get_vcs_in_exe_time_order(log_folder, file_name.split(".")[0] + "_boogie.log")
+        for index, name_of_vc in enumerate(name_of_vcs):
+            if name_of_vc in res:
+                res[name_of_vc].append(exe_times[index])
+            else:
+                res[name_of_vc]=[]
+                res[name_of_vc].append(exe_times[index])
+    debug_file.write("Name,\t Average,\t Std,\t Min,\t Max\t\n")
+    tmp={}
+    for name in res:
+        array=np.array(res[name])
+        tmp[name] = (np.round(np.average(array)), np.round(np.std(array)), np.round(np.min(array)), np.round(np.max(array)))
+    tmp=sorted(tmp.items(), key=lambda pair: pair[1][3], reverse=True)
+    for name in tmp:
+        debug_file.write(str(name[0])+",\t "+str(name[1][0])+",\t "+str(name[1][1])+",\t "+str(name[1][2])+",\t "+str(name[1][3])+"\n")
+    debug_file.close()
+
+def specific_quantifiers_instantiation_analysis(log_folder, original_file, percentagePrograms, percentageVCs, debug=False):
     if not check_profiling_completes(log_folder, original_file + "_z3_profile.profile"):
         print("File picked for comparison did not complete profiling")
         exit(-1)
@@ -256,6 +292,8 @@ def specific_quantifiers_instantiation_analysis(log_folder, original_file, perce
                 vcs_counter[tmp_name]=1
     most_common_vcs=sorted(vcs_counter.items(), key=lambda x: x[1], reverse=True)
     all_dict_file_vcs_indexs = get_set_of_worst_vcs(log_folder, 1, 1)
+    if debug:
+        print_debug_info(log_folder, all_dict_file_vcs_indexs)
     color = iter(cm.rainbow(np.linspace(0, 1, len(most_common_vcs))))
     for index_common_vc,(vc_common,cntr) in enumerate(most_common_vcs):
         program_names = []
@@ -324,7 +362,28 @@ def specific_quantifiers_instantiation_analysis(log_folder, original_file, perce
         plt.title("Analysis of worst VCs")
     plt.legend()
 
-#get_plot_exe_time_z3_vs_boogie("../log_seed/")
-global_quantifiers_instantiation_analysis("../log_seed/", "tmp345", 1.0)
-#specific_quantifiers_instantiation_analysis("../log_seed/", "tmp345", 0.7, 0.3)
+parser = MyParser(description='Elaborate logs from Boogie and from z3 profiling. It creates a log file named 0_exe_time.log')
+parser.add_argument('-exeTime', type=str, nargs=1, help='Plot execution time in ascending order',
+                    metavar=('<path_to_logs>'))
+parser.add_argument('-quantGlobal', type=str, nargs=2,
+                    help='Analysis of quantifier instantiations for all VCs. '
+                         'It needs the path to log folder <path_to_logs>,'
+                         'and the name of the reference log file <name_reference_log>.',
+                    metavar=('<path_to_logs>', '<name_reference_log>'))
+parser.add_argument('-quantVC', type=str, nargs=4,
+                    help='Analysis of quantifier instantiations for a subset of VCs.'
+                         'It needs the path to log folder <path_to_logs>, '
+                         'the name of the reference log file <name_reference_log>, '
+                         'the ratio of the programs to include sorted by exe time (1 means all, 0 means none), '
+                         'the ratio of the VCs to include sorted by how many programs spend most time in the VC (1 means all, 0 means none)',
+                    metavar=('<path_to_logs>', '<name_reference_log>', '<ratio_programs>', '<ratio_VCs>'))
+args = parser.parse_args()
+if not (args.quantGlobal or args.exeTime or args.quantVC):
+    parser.error('No action requested, add -exeTime or -quantGlobal or -quantVC')
+if args.exeTime:
+    get_plot_exe_time_z3_vs_boogie(args.exeTime[0])
+if args.quantGlobal:
+    global_quantifiers_instantiation_analysis(args.quantGlobal[0], args.quantGlobal[1], 1.0)
+if args.quantVC:
+    specific_quantifiers_instantiation_analysis(args.quantVC[0], args.quantVC[1], args.quantVC[2], args.quantVC[3], debug=True)
 plt.show()
