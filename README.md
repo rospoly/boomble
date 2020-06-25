@@ -27,6 +27,6 @@ and returns an error message.
 # run the quantifier analysis
 In the folder `parallel` in the home directory of boomble there are two Python3 scripts:
 
-1) `parAnalysis` runs `boogie` and `z3` (with profiling and log enabled). The script is standalone and it has a dedicate parser with usefull message and `-help` option. Just run `python3 parAnalysis.py`.
+1) `parAnalysis` runs `boogie` and `z3` (with profiling and log enabled). The script is standalone and it has a dedicate parser with`-help` option. Just run `python3 parAnalysis.py`.
 
-2) `elaborateLogs.py` runs the quantifier instantiations analysis on the logs produced by `parAnalysis`. (TODO: parser with help message)
+2) `elaborateLogs.py` runs the quantifier instantiations analysis on the logs produced by `parAnalysis`. The script is standalone and it has a dedicate parser with`-help` option. Just run `python3 elaborateLogs.py`.
