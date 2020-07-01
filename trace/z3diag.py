@@ -77,9 +77,14 @@ def process_token_list(token_list):
     elif kind == '[attach-meaning]':
         meaning_dict[token_list[1]] = "".join(token_list[3:])
     elif kind == '[new-match]':
+        # Trigger caused the quantifier instantiation
         # for now, just incr quantifier count
         quantifier_id = token_list[2]
         quant_inst_count_dict[quantifier_id] = quant_inst_count_dict.get(quantifier_id, 0) + 1
+    elif kind == '[inst-discovered]':
+        #usually used for theory axioms "theory-solving" in the trace
+        pass
+
 
 def show_inst_counts(how_many=100):
     global quant_inst_count_dict
