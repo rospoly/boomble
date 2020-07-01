@@ -21,6 +21,7 @@ def process_file(time_out_vc, random_seed, file_folder, file_name, log_folder):
 	name_no_ext=file_name.split(".")[0]
 	f=("boogie "+
 	   ("-p:O:timeout="+time_out_vc+" " if int(timeout)!=-1 else "")+
+		"-proverOpt:PROVER_PATH=./z3_log "+
 	   	"-p:O:sat.random_seed="+random_seed+" "
 		"-p:O:nlsat.seed="+random_seed+" "
 		"-p:O:fp.spacer.random_seed="+random_seed+" "
@@ -40,15 +41,9 @@ def process_file(time_out_vc, random_seed, file_folder, file_name, log_folder):
 	log_file.writelines("###Execution time: "+str(end-start))
 	log_file.close()
 	###########################################
-	f = ("z3 "
-		 "-v:10 "
-		 "-st "+
+	f = ("./z3_log "+
 		 ("-t:"+time_out_vc+" " if int(timeout)!=-1 else "")+
 		 "smt.qi.profile=true "
-		 "fp.spacer.iuc.debug_proof=true "
-		 "fp.datalog.output_profile=true "
-		 "smt.mbqi.trace=true "
-		 "sat.local_search_dbg_flips=true "
 		 "sat.random_seed=" + random_seed + " "
 		 "nlsat.seed=" + random_seed + " "
 		 "fp.spacer.random_seed=" + random_seed + " "
@@ -107,7 +102,7 @@ for file_name in file_set:
 			tmp_seed=str(random.randint(0, len(file_set)))
 			pool.apply_async(process_file, [timeout, tmp_seed, results, file_name, log])
 		else:
-			pool.apply_async(process_file, [timeout, random_seed, results, file_name, log])
+			pool.apply_async(process_file, [timeout, str(random_seed), results, file_name, log])
 
 pool.close()
 pool.join()
