@@ -41,36 +41,95 @@ def get_exe_time_from_z3_profiling(log_folder, file_name):
     file.close()
     return float(exe_time)
 
+def get_if_timeout_z3(log_folder, file_name):
+    file = open(log_folder + file_name, "r")
+    tmp = file.read()
+    if "(:reason-unknown \"timeout\")" in tmp or "(:reason-unknown \"canceled\")" in tmp:
+        file.close()
+        return True
+    return False
+
+def get_if_timeout_boogie(log_folder, file_name):
+    file = open(log_folder + file_name, "r")
+    tmp = file.read()
+    if "time out" in tmp or "out of resource" in tmp:
+        file.close()
+        return True
+    return False
+
 def get_number_instances_line_qdiff(line):
     inst=(line.split("(")[1]).split("inst")[0]
     return int(inst)
 
+def analyze_single_profile(log_folder, profile):
+    file=open(log_folder+profile, "r").readlines()
+    num_inst={}
+    num_inst_true={}
+    num_inst_sat={}
+    pattern="[quantifier_instances]"
+    for line in file:
+        if pattern in line:
+            vals=line.split(":")
+            vals=[i.strip() for i in vals]
+            vals=[i.replace(pattern,"") for i in vals]
+            vals=[i.strip() for i in vals]
+            if vals[-6] in num_inst:
+                num_inst[vals[-6]] += int(vals[-5])
+                num_inst_true[vals[-6]] += int(vals[-4])
+                num_inst_sat[vals[-6]] += int(vals[-3])
+            else:
+                num_inst[vals[-6]] = int(vals[-5])
+                num_inst_true[vals[-6]] = int(vals[-4])
+                num_inst_sat[vals[-6]] = int(vals[-3])
+    return num_inst,num_inst_true,num_inst_sat
+
+def qdiff_special(log_folder, orig_profile, compare_profile):
+    num_inst,num_inst_true,num_inst_sat=analyze_single_profile(log_folder, orig_profile)
+    num_inst_cmp,num_inst_true_cmp,num_inst_sat_cmp=analyze_single_profile(log_folder, compare_profile)
+    cmp_num_inst={}
+    cmp_num_inst_true={}
+    cmp_num_inst_sat={}
+    for val in num_inst:
+        if val in num_inst_cmp:
+            if val in cmp_num_inst:
+                cmp_num_inst[val] -= (num_inst[val]-num_inst_cmp.get(val,0))
+                cmp_num_inst_true[val] -= (num_inst_true[val]-num_inst_true_cmp.get(val,0))
+                cmp_num_inst_sat[val] -= (num_inst_sat[val]-num_inst_sat_cmp.get(val,0))
+            else:
+                cmp_num_inst[val] = -(num_inst[val]-num_inst_cmp.get(val,0))
+                cmp_num_inst_true[val] = -(num_inst_true[val]-num_inst_true_cmp.get(val,0))
+                cmp_num_inst_sat[val] = -(num_inst_sat[val]-num_inst_sat_cmp.get(val,0))
+
+    missing_keys = set(num_inst) - set(num_inst_cmp)
+
+    for val in missing_keys:
+        if val in cmp_num_inst:
+            cmp_num_inst[val] -= (num_inst.get(val,0) - num_inst_cmp.get(val, 0))
+            cmp_num_inst_true[val] -= (num_inst_true.get(val,0) - num_inst_true_cmp.get(val, 0))
+            cmp_num_inst_sat[val] -= (num_inst_sat.get(val,0) - num_inst_sat_cmp.get(val, 0))
+        else:
+            cmp_num_inst[val] = -(num_inst.get(val,0) - num_inst_cmp.get(val, 0))
+            cmp_num_inst_true[val] = -(num_inst_true.get(val,0) - num_inst_true_cmp.get(val, 0))
+            cmp_num_inst_sat[val] = -(num_inst_sat.get(val,0) - num_inst_sat_cmp.get(val, 0))
+
+    array_cmp_num_inst=np.array(list(cmp_num_inst.values()))
+    array_cmp_num_inst_true=np.array(list(cmp_num_inst_true.values()))
+    array_cmp_num_inst_sat=np.array(list(cmp_num_inst_sat.values()))
+    return sum(array_cmp_num_inst[array_cmp_num_inst>0]), \
+           sum(array_cmp_num_inst[array_cmp_num_inst<0]), \
+           sum(array_cmp_num_inst_true[array_cmp_num_inst_true > 0]), \
+           sum(array_cmp_num_inst_true[array_cmp_num_inst_true < 0]), \
+           sum(array_cmp_num_inst_sat[array_cmp_num_inst_sat > 0]), \
+           sum(array_cmp_num_inst_sat[array_cmp_num_inst_sat < 0])
+
 def compare_z3_profiles(log_folder, orig_profile, compare_profile):
     #name_no_ext = file_name.split(".")[0]
-    f = "qprofdiff " + log_folder + orig_profile + " " + log_folder + compare_profile
-    proc_run = subprocess.Popen(shlex.split(f), stdout=subprocess.PIPE)
-    output,errors=proc_run.communicate()
-    plus=0
-    equal=0
-    minus=0
-    more=0
-    less=0
-    #Note. Everything refer to the compare profile: + means compare profile has more inst. than orig.
-    # > means compare_profile has something new wrt to orig.
-    # < means compare_profile does not have something that is in orig.
-    output=output.decode('unicode_escape')
-    for line in output.split("\n"):
-        if line.startswith("+"):
-            plus = plus + get_number_instances_line_qdiff(line)
-        elif line.startswith("="):
-            equal = equal + get_number_instances_line_qdiff(line)
-        elif line.startswith("-"):
-            minus = minus + get_number_instances_line_qdiff(line)
-        elif line.startswith(">"):
-            more = more + get_number_instances_line_qdiff(line)
-        elif line.startswith("<"):
-            less = less + get_number_instances_line_qdiff(line)
-    return plus,equal,minus,more,less
+    sum_num_inst_pos, sum_num_inst_neg, \
+    sum_num_inst_true_pos, sum_num_inst_true_neg, \
+    sum_num_inst_sat_pos, sum_num_inst_sat_neg = qdiff_special(log_folder, orig_profile, compare_profile)
+    return sum_num_inst_pos, sum_num_inst_neg, \
+           sum_num_inst_true_pos, sum_num_inst_true_neg, \
+           sum_num_inst_sat_pos, sum_num_inst_sat_neg
 
 def get_partial_distribution_given_vector(list, percentage):
     if percentage>1.0:
@@ -107,22 +166,49 @@ def get_plot_exe_time_z3_vs_boogie(log_folder):
     filename_val=[]
     boogie_val=[]
     z3_val=[]
+    timeouts_z3=[]
+    timeouts_boogie=[]
     for key,val in sorted(view)[-last_chunk:]:
         z3_key=get_exe_time_from_z3_profiling(log_folder, val.split(".")[0]+"_z3_profile.profile")
+        detect_timeout_z3=get_if_timeout_z3(log_folder, val.split(".")[0]+"_z3_profile.profile")
+        detect_timeout_boogie=get_if_timeout_boogie(log_folder, val.split(".")[0]+"_boogie.log")
         if z3_key != -1:
             filename_val.append(val)
             boogie_val.append(float(key))
             z3_val.append(float(z3_key))
+            timeouts_z3.append(detect_timeout_z3)
+            timeouts_boogie.append(detect_timeout_boogie)
+
     log=open(log_folder+"0_exe_time.log", "w+")
     for index, val in enumerate(filename_val):
         log.write(val+", boogie: "+str(boogie_val[index])+", z3: "+str(z3_val[index])+"\n")
     log.close()
-    plt.plot(range(0, len(filename_val)), boogie_val, '-o', color="blue", label="boogie")
-    plt.plot(range(0, len(filename_val)), z3_val, '-o', color="red", label="z3")
+    plt.plot(range(0, len(filename_val)), boogie_val, '-', color="blue", label="boogie")
+    plt.plot(range(0, len(filename_val)), z3_val, '-', color="red", label="z3")
+
+    p=False
+    for ind, value in enumerate(timeouts_boogie):
+        if value:
+            if not p:
+                p=True
+                plt.scatter(ind, y=boogie_val[ind], color='blue', marker='X', s=200, label="timeout")
+            else:
+                plt.scatter(ind, y=boogie_val[ind], color='blue', marker='X', s=200)
+
+    p=False
+    for ind, value in enumerate(timeouts_z3):
+        if value:
+            if not p:
+                p=True
+                plt.scatter(ind, y=z3_val[ind], color='red', marker='P', s=200, label="timeout")
+            else:
+                plt.scatter(ind, y=z3_val[ind], color='red', marker='P', s=200)
+
     plt.ylabel('Time (sec)')
     plt.xlabel('programs')
     len_comparison=len(boogie_val)
-    plt.xticks([])
+    ticks=np.linspace(0,len_comparison,10)
+    plt.xticks(ticks)
     plt.legend()
 
 
@@ -181,52 +267,71 @@ def global_quantifiers_instantiation_analysis(log_folder, original_file, percent
     x_val, y_val = get_chunk_of_shuffles_given_percentage(log_folder, percentage, reverse=False)
     plt.figure(figsize=(17, 10))
     original_index=-1
-    pos_values=[]
-    neg_values=[]
-    more_values=[]
-    less_values=[]
-    equal_values=[]
+
+    num_inst_pos=[]
+    num_inst_true_pos=[]
+    num_inst_sat_pos=[]
+
+    num_inst_neg=[]
+    num_inst_true_neg=[]
+    num_inst_sat_neg=[]
+
+
     program_names = []
     for ind, file_name in enumerate(x_val):
         file_name = file_name.split(".")[0] + "_z3_profile.profile"
         if check_profiling_completes(log_folder,file_name):
             if file_name==original_file+ "_z3_profile.profile":
                 original_index=ind
-            plus,equal,minus,more,less=compare_z3_profiles(log_folder, original_file+"_z3_profile.profile", file_name)
-            pos_values.append(plus)
-            neg_values.append(minus)
-            more_values.append(more)
-            less_values.append(less)
-            equal_values.append(equal)
+
+            sum_num_inst_pos, sum_num_inst_neg, \
+            sum_num_inst_true_pos, sum_num_inst_true_neg, \
+            sum_num_inst_sat_pos, sum_num_inst_sat_neg = \
+                compare_z3_profiles(log_folder, original_file+"_z3_profile.profile", file_name)
+
+            num_inst_pos.append(sum_num_inst_pos)
+            num_inst_neg.append(sum_num_inst_neg)
+
+            num_inst_true_pos.append(sum_num_inst_true_pos)
+            num_inst_true_neg.append(sum_num_inst_true_neg)
+
+            num_inst_sat_pos.append(sum_num_inst_sat_pos)
+            num_inst_sat_neg.append(sum_num_inst_sat_neg)
+
             program_names.append(file_name)
+
+    log=open(log_folder+"0_global_analysis_"+original_file+".log", "w+")
+    log.write("Name, +Num. of Inst., +Num. of true Inst., +Num. of sat Inst., -Num. of Inst., -Num. of true Inst., Num. of sat Inst.\n\n")
+
+    for ind, program in enumerate(program_names):
+        log.write(program+": "+str(num_inst_pos[ind])+", "+str(num_inst_true_pos[ind])+", "+str(num_inst_sat_pos[ind])+
+                  ", "+str(num_inst_neg[ind])+", "+str(num_inst_true_neg[ind])+", "+str(num_inst_sat_neg[ind])+"\n")
+    log.close()
+
     x_enumerate=range(0,len(program_names))
-    plt.bar(x_enumerate, pos_values, align='center', color='blue', label="more instantiations")
-    plt.bar(x_enumerate, neg_values, align='center', color='red', label="less instantiations")
+    plt.bar(x_enumerate, num_inst_pos, align='center', width=1.0, color='blue', label="instantiations")
+    plt.bar(x_enumerate, num_inst_true_pos, align='center', width=1.0, bottom=num_inst_pos, color='red', label="true instantiations")
+    plt.bar(x_enumerate, num_inst_sat_pos, align='center', width=1.0, bottom=np.array(num_inst_true_pos)+np.array(num_inst_pos), color='green', label="sat instantiations")
 
-    p=False
-    for ind, value in enumerate(more_values):
-        if value != 0:
-            if not p:
-                p=True
-                plt.scatter(ind, y=pos_values[ind], color='blue', s=40, label="new quantifiers")
-            else:
-                plt.scatter(ind, y=pos_values[ind], color='blue', s=40)
+    plt.bar(x_enumerate, num_inst_neg, align='center', width=1.0, alpha = 0.5, color='blue', label="instantiations")
+    plt.bar(x_enumerate, num_inst_true_neg, align='center', width=1.0, alpha = 0.5, bottom=num_inst_neg, color='red',
+            label="true instantiations")
+    plt.bar(x_enumerate, num_inst_sat_neg, align='center', width=1.0, alpha = 0.5, bottom=np.array(num_inst_neg) + np.array(num_inst_true_neg),
+            color='green',  label="sat instantiations")
 
-    p=False
-    for ind, value in enumerate(less_values):
-        if value != 0:
-            if not p:
-                p=True
-                plt.scatter(ind, y=neg_values[ind], color='red', s=40, label="missing quantifiers")
-            else:
-                plt.scatter(ind, y=neg_values[ind], color='red', s=40)
+    plt.plot([original_index, original_index], [min(np.array(num_inst_neg)+np.array(num_inst_true_neg)+np.array(num_inst_sat_neg)),
+                                                max(np.array(num_inst_pos)+np.array(num_inst_true_pos)+np.array(num_inst_sat_pos))], color="black", linewidth=3, linestyle='dashed', label="mutation "+original_file)
 
-    plt.plot([original_index, original_index], [min(neg_values), max(pos_values)], color="black", linewidth=3, linestyle='dashed', label="mutation "+original_file)
-    plt.xticks([])
     plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-    plt.ylabel('abs num. of quant. instantiations')
+    plt.ylabel('total number of q. instantiations')
     plt.xlabel('programs (sort by exe time)')
-    plt.ylim([min(neg_values), max(pos_values)])
+
+    plt.ylim([min(np.array(num_inst_neg)+np.array(num_inst_true_neg)+np.array(num_inst_sat_neg)),
+             max(np.array(num_inst_pos)+np.array(num_inst_true_pos)+np.array(num_inst_sat_pos))])
+
+    len_comparison=len(x_enumerate)
+    ticks=np.linspace(0,len_comparison,10)
+    plt.xticks(ticks)
     plt.title(original_file.split(".")[0])
     plt.legend()
 
