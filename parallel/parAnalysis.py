@@ -27,6 +27,13 @@ def process_file(time_out_vc, random_seed, file_folder, file_name, log_folder, z
 		"-p:O:fp.spacer.random_seed="+random_seed+" "
 		"-p:O:smt.random_seed="+random_seed+" "
 		"-p:O:sls.random_seed="+random_seed+" "
+		"-p:O:smt.QI.EAGER_THRESHOLD=100 "
+		"-p:O:smt.QI.LAZY_THRESHOLD=100 "
+		"-p:O:smt.array.extensional=false "
+		"-doModSetAnalysis "
+		"-printVerifiedProceduresCount:0 "
+		"-printModel:4 "
+		"-errorLimit:1 "
 		"-trace "
 		"-proverLog:"+log_folder+name_no_ext+".smt2 "
 		"-traceTimes "
@@ -49,6 +56,9 @@ def process_file(time_out_vc, random_seed, file_folder, file_name, log_folder, z
 		 "fp.spacer.random_seed=" + random_seed + " "
 		 "smt.random_seed=" + random_seed + " "
 		 "sls.random_seed=" + random_seed + " "
+		 "smt.QI.EAGER_THRESHOLD=100 "
+		 "smt.QI.LAZY_THRESHOLD=100 "
+		 "smt.array.extensional=false "
 		 + log_folder + name_no_ext + ".smt2")
 
 	log_file = open(log_folder + name_no_ext + "_z3_profile.profile", "w+")
