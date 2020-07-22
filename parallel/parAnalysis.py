@@ -20,7 +20,7 @@ def process_file(time_out_vc, random_seed, file_folder, file_name, log_folder, z
 	print("Currently analyzing: "+str(file_name))
 	name_no_ext=file_name.split(".")[0]
 	f=("boogie "+
-	   ("-p:O:timeout="+time_out_vc+" " if int(timeout)!=-1 else "") +
+	   ("-p:O:t="+time_out_vc+" " if int(timeout)!=-1 else "") +
 	   ("-proverOpt:PROVER_PATH="+z3+" " if not z3=="" else "") +
 	   	"-p:O:sat.random_seed="+random_seed+" "
 		"-p:O:nlsat.seed="+random_seed+" "
