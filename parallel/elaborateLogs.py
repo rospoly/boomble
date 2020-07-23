@@ -157,7 +157,7 @@ def get_chunk_of_shuffles_given_percentage(log_folder, percentage, reverse):
     i=get_partial_distribution_given_vector(y_val,percentage)+1
     return x_val[0:i], y_val[0:i]
 
-def get_plot_exe_time_z3_vs_boogie(log_folder):
+def get_plot_exe_time_z3_vs_boogie(log_folder, debug=True):
     plt.figure()
     plt.title("Exe time boogie vs z3 (with profile)")
     name_time=elaborateResults(log_folder)
@@ -179,10 +179,12 @@ def get_plot_exe_time_z3_vs_boogie(log_folder):
             timeouts_z3.append(detect_timeout_z3)
             timeouts_boogie.append(detect_timeout_boogie)
 
-    log=open(log_folder+"0_exe_time.log", "w+")
-    for index, val in enumerate(filename_val):
-        log.write(val+", boogie: "+str(boogie_val[index])+", z3: "+str(z3_val[index])+"\n")
-    log.close()
+    all_dict_file_vcs_indexs = get_set_of_worst_vcs(log_folder, 1, 1)
+
+    if debug:
+        print_debug_info_Exe_Time(log_folder, filename_val, boogie_val, z3_val)
+        print_debug_info_VCs(log_folder, all_dict_file_vcs_indexs)
+
     plt.plot(range(0, len(filename_val)), boogie_val, '-', color="blue", label="boogie")
     plt.plot(range(0, len(filename_val)), z3_val, '-', color="red", label="z3")
 
@@ -207,7 +209,7 @@ def get_plot_exe_time_z3_vs_boogie(log_folder):
     plt.ylabel('Time (sec)')
     plt.xlabel('programs')
     len_comparison=len(boogie_val)
-    ticks=np.linspace(0,len_comparison,10)
+    ticks=np.linspace(0,len_comparison,10, dtype=int)
     plt.xticks(ticks)
     plt.legend()
 
@@ -260,14 +262,10 @@ def check_profiling_completes(logfolder,filename):
         return True
     return False
 
-def global_quantifiers_instantiation_analysis(log_folder, original_file, percentage, debug=False):
+def global_quantifiers_instantiation_analysis(log_folder, original_file, percentage):
     if not check_profiling_completes(log_folder, original_file + "_z3_profile.profile"):
         print("File picked for comparison did not complete profiling.")
         exit(-1)
-
-    all_dict_file_vcs_indexs = get_set_of_worst_vcs(log_folder, 1, 1)
-    if debug:
-        print_debug_info(log_folder, all_dict_file_vcs_indexs)
 
     x_val, y_val = get_chunk_of_shuffles_given_percentage(log_folder, percentage, reverse=False)
     plt.figure(figsize=(17, 10))
@@ -335,7 +333,7 @@ def global_quantifiers_instantiation_analysis(log_folder, original_file, percent
              max(np.array(num_inst_pos)+np.array(num_inst_true_pos)+np.array(num_inst_sat_pos))])
 
     len_comparison=len(x_enumerate)
-    ticks=np.linspace(0,len_comparison,10)
+    ticks=np.linspace(0,len_comparison,10, dtype=int)
     plt.xticks(ticks)
     plt.title(original_file.split(".")[0])
     plt.legend()
@@ -360,8 +358,13 @@ def dump_partial_quantifiers_to_file(logfolder, filename, index, partial_quantif
     profile.close()
     return (filename + "_z3_profile_"+str(index)+".syntprofile")
 
+def print_debug_info_Exe_Time(log_folder, filename_val, boogie_val, z3_val):
+    log = open(log_folder + "0_exe_time.log", "w+")
+    for index, val in enumerate(filename_val):
+        log.write(val + ", boogie: " + str(boogie_val[index]) + ", z3: " + str(z3_val[index]) + "\n")
+    log.close()
 
-def print_debug_info(log_folder, all_dict_file_vcs_indexs):
+def print_debug_info_VCs(log_folder, all_dict_file_vcs_indexs):
     debug_file=open(log_folder+"0_debug_statistics.txt","w+")
     res={}
     for file_name in all_dict_file_vcs_indexs:
@@ -402,8 +405,8 @@ def specific_quantifiers_instantiation_analysis(log_folder, original_file, perce
                 vcs_counter[tmp_name]=1
     most_common_vcs=sorted(vcs_counter.items(), key=lambda x: x[1], reverse=True)
     all_dict_file_vcs_indexs = get_set_of_worst_vcs(log_folder, 1, 1)
-    if debug:
-        print_debug_info(log_folder, all_dict_file_vcs_indexs)
+    #if debug:
+    #    print_debug_info(log_folder, all_dict_file_vcs_indexs)
     color = iter(cm.rainbow(np.linspace(0, 1, len(most_common_vcs))))
     for index_common_vc,(vc_common,cntr) in enumerate(most_common_vcs):
         program_names = []
