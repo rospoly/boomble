@@ -264,6 +264,11 @@ def global_quantifiers_instantiation_analysis(log_folder, original_file, percent
     if not check_profiling_completes(log_folder, original_file + "_z3_profile.profile"):
         print("File picked for comparison did not complete profiling.")
         exit(-1)
+
+    all_dict_file_vcs_indexs = get_set_of_worst_vcs(log_folder, 1, 1)
+    if debug:
+        print_debug_info(log_folder, all_dict_file_vcs_indexs)
+
     x_val, y_val = get_chunk_of_shuffles_given_percentage(log_folder, percentage, reverse=False)
     plt.figure(figsize=(17, 10))
     original_index=-1
@@ -475,20 +480,12 @@ parser.add_argument('-quantGlobal', type=str, nargs=2,
                          'It needs the path to log folder <path_to_logs>,'
                          'and the name of the reference log file <name_reference_log>.',
                     metavar=('<path_to_logs>', '<name_reference_log>'))
-parser.add_argument('-quantVC', type=str, nargs=4,
-                    help='Analysis of quantifier instantiations for a subset of VCs.'
-                         'It needs the path to log folder <path_to_logs>, '
-                         'the name of the reference log file <name_reference_log>, '
-                         'the ratio of the programs to include sorted by exe time (1 means all, 0 means none), '
-                         'the ratio of the VCs to include sorted by how many programs spend most time in the VC (1 means all, 0 means none)',
-                    metavar=('<path_to_logs>', '<name_reference_log>', '<ratio_programs>', '<ratio_VCs>'))
+
 args = parser.parse_args()
-if not (args.quantGlobal or args.exeTime or args.quantVC):
-    parser.error('No action requested, add -exeTime or -quantGlobal or -quantVC')
+if not (args.quantGlobal or args.exeTime):
+    parser.error('No action requested, add -exeTime or -quantGlobal')
 if args.exeTime:
     get_plot_exe_time_z3_vs_boogie(args.exeTime[0])
 if args.quantGlobal:
     global_quantifiers_instantiation_analysis(args.quantGlobal[0], args.quantGlobal[1], 1.0)
-if args.quantVC:
-    specific_quantifiers_instantiation_analysis(args.quantVC[0], args.quantVC[1], args.quantVC[2], args.quantVC[3], debug=True)
 plt.show()
