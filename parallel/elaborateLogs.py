@@ -218,15 +218,14 @@ def get_set_of_worst_vcs(log_folder, percentagePrograms, percentageVCs):
     x_val, y_val = get_chunk_of_shuffles_given_percentage(log_folder, percentagePrograms, reverse=True)
     ret={}
     for file_name in x_val:
-        name_of_vcs, exe_times, orig_indxs = get_vcs_in_exe_time_order(log_folder, file_name.split(".")[0] + "_boogie.log")
+        name_of_vcs, exe_times, timeouts = get_vcs_in_exe_time_order(log_folder, file_name.split(".")[0] + "_boogie.log")
         i = get_partial_distribution_given_vector(exe_times, percentageVCs) + 1
-        #i=len(exe_times)
         for val in range(0,i):
             if file_name.split(".")[0] in ret:
-                ret[file_name.split(".")[0]].append((name_of_vcs[val],exe_times[val], orig_indxs[val]))
+                ret[file_name.split(".")[0]].append((name_of_vcs[val],exe_times[val], timeouts[val]))
             else:
                 ret[file_name.split(".")[0]]=[]
-                ret[file_name.split(".")[0]].append((name_of_vcs[val],exe_times[val], orig_indxs[val]))
+                ret[file_name.split(".")[0]].append((name_of_vcs[val],exe_times[val], timeouts[val]))
     return ret
 
 def get_vcs_in_exe_time_order(log_folder, file_name):
@@ -234,27 +233,29 @@ def get_vcs_in_exe_time_order(log_folder, file_name):
     conditions=file.split("\n\n")
     name_of_vcs= []
     exe_times  = []
-    orig_index = []
+    timeouts = []
     for ind, cond in enumerate(conditions):
         name_of_vc="N/A"
-        init_time=None
-        end_time = None
-        for line in cond.splitlines():
+        time=None
+        timeout=True
+        lines=cond.splitlines()
+        for ind, line in enumerate(lines):
             if "Verifying" in line and "..." in line:
                 name_of_vc=(line.split("Verifying")[1]).split("...")[0]
-            elif "Starting implementation verification" in line:
-                init_time=float((line.split("[")[1]).split("s")[0])
-            elif "Finished implementation verification" in line:
-                end_time=float((line.split("[")[1]).split("s")[0])
-        if name_of_vc is not None and init_time is not None and end_time is not None:
+                time_line=lines[ind+1]
+                time = float((time_line.split("[")[1]).split("s")[0])
+                if "verified" in time_line:
+                    timeout=False
+                break
+        if name_of_vc is not None and time is not None:
             name_of_vcs.append(name_of_vc)
-            exe_times.append(end_time-init_time)
-            orig_index.append(ind)
-    sorted_zip=sorted(zip(name_of_vcs, exe_times, orig_index), key=lambda pair: pair[1], reverse=True)
+            exe_times.append(time)
+            timeouts.append(timeout)
+    sorted_zip=sorted(zip(name_of_vcs, exe_times, timeouts), key=lambda pair: pair[1], reverse=True)
     name_of_vcs = [x for x,y,z in sorted_zip]
     exe_times = [y for x,y,z in sorted_zip]
-    orig_indexs = [z for x,y,z in sorted_zip]
-    return name_of_vcs,exe_times, orig_indexs
+    timeouts = [z for x,y,z in sorted_zip]
+    return name_of_vcs, exe_times, timeouts
 
 def check_profiling_completes(logfolder,filename):
     prof_file=open(logfolder+filename, "r").readlines()
@@ -367,22 +368,34 @@ def print_debug_info_Exe_Time(log_folder, filename_val, boogie_val, z3_val):
 def print_debug_info_VCs(log_folder, all_dict_file_vcs_indexs):
     debug_file=open(log_folder+"0_debug_statistics.txt","w+")
     res={}
+    timeouts = {}
     for file_name in all_dict_file_vcs_indexs:
-        name_of_vcs, exe_times, orig_indxs = get_vcs_in_exe_time_order(log_folder, file_name.split(".")[0] + "_boogie.log")
-        for index, name_of_vc in enumerate(name_of_vcs):
-            if name_of_vc in res:
-                res[name_of_vc].append(exe_times[index])
+        shuffle=all_dict_file_vcs_indexs[file_name]
+        for vc in shuffle:
+            if vc[0] in res:
+                res[vc[0]].append(vc[1])
             else:
-                res[name_of_vc]=[]
-                res[name_of_vc].append(exe_times[index])
-    debug_file.write("Name,\t Average,\t Std,\t Min,\t Max\t\n")
+                res[vc[0]]=[]
+                res[vc[0]].append(vc[1])
+
+            if vc[0] in timeouts:
+                if vc[2] == True:
+                    timeouts[vc[0]] += 1
+            else:
+                timeouts[vc[0]] = 0
+                if vc[2] == True:
+                    timeouts[vc[0]] += 1
+
+    debug_file.write("Name,\t Average,\t Std,\t Min,\t Max,\tTimeouts\n")
     tmp={}
     for name in res:
         array=np.array(res[name])
-        tmp[name] = (np.round(np.average(array)), np.round(np.std(array)), np.round(np.min(array)), np.round(np.max(array)))
+        tmp[name] = (np.round(np.average(array)), np.round(np.std(array)), np.round(np.min(array)),
+                     np.round(np.max(array)), str(timeouts[name])+"/"+str(len(array)))
     tmp=sorted(tmp.items(), key=lambda pair: pair[1][3], reverse=True)
     for name in tmp:
-        debug_file.write(str(name[0])+",\t "+str(name[1][0])+",\t "+str(name[1][1])+",\t "+str(name[1][2])+",\t "+str(name[1][3])+"\n")
+        debug_file.write(str(name[0])+",\t "+str(name[1][0])+",\t "+str(name[1][1])+",\t "+str(name[1][2])+
+                         ",\t "+str(name[1][3])+",\t "+str(name[1][4])+"\n")
     debug_file.close()
 
 def specific_quantifiers_instantiation_analysis(log_folder, original_file, percentagePrograms, percentageVCs, debug=False):
