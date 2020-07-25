@@ -112,11 +112,12 @@ os.makedirs(log, exist_ok=True)
 
 file_set = sorted(os.listdir(results))
 
+seed_sequence=range(0, len(file_set))
 pool = Pool(processes=num_cores, maxtasksperchild=2)
-for file_name in file_set:
+for index_file_name, file_name in enumerate(file_set):
 	if file_name.endswith(".bpl"):
 		if random_seed==-1:
-			tmp_seed=str(random.randint(0, len(file_set)))
+			tmp_seed=str(int(seed_sequence[index_file_name]))
 			pool.apply_async(process_file, [timeout, tmp_seed, results, file_name, log, z3, z3_options, boogie_options])
 		else:
 			pool.apply_async(process_file, [timeout, str(random_seed), results, file_name, log, z3, z3_options, boogie_options])

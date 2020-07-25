@@ -263,7 +263,7 @@ def check_profiling_completes(logfolder,filename):
         return True
     return False
 
-def global_quantifiers_instantiation_analysis(log_folder, original_file, percentage):
+def global_quantifiers_instantiation_analysis(log_folder, original_file, percentage, debug=True):
     if not check_profiling_completes(log_folder, original_file + "_z3_profile.profile"):
         print("File picked for comparison did not complete profiling.")
         exit(-1)
@@ -282,11 +282,21 @@ def global_quantifiers_instantiation_analysis(log_folder, original_file, percent
 
 
     program_names = []
+
+    if debug:
+        debug_file = open(log_folder + "0_quantifiers.txt", "w+")
+        debug_file.write("Name,\t Inst.,\t Inst. True,\t Inst. Sat\n")
+        debug_file.flush()
+
     for ind, file_name in enumerate(x_val):
         file_name = file_name.split(".")[0] + "_z3_profile.profile"
         if check_profiling_completes(log_folder,file_name):
             if file_name==original_file+ "_z3_profile.profile":
                 original_index=ind
+
+            if debug:
+                num_inst, num_inst_true, num_inst_sat = analyze_single_profile(log_folder,file_name)
+                print_debug_info_Quantifiers(log_folder, file_name, num_inst, num_inst_true, num_inst_sat)
 
             sum_num_inst_pos, sum_num_inst_neg, \
             sum_num_inst_true_pos, sum_num_inst_true_neg, \
@@ -397,6 +407,12 @@ def print_debug_info_VCs(log_folder, all_dict_file_vcs_indexs):
         debug_file.write(str(name[0])+",\t "+str(name[1][0])+",\t "+str(name[1][1])+",\t "+str(name[1][2])+
                          ",\t "+str(name[1][3])+",\t "+str(name[1][4])+"\n")
     debug_file.close()
+
+def print_debug_info_Quantifiers(log_folder,original_file,num_inst,num_inst_true,num_inst_sat):
+    debug_file = open(log_folder + "0_quantifiers.txt", "a+")
+    debug_file.write(str(original_file)+",\t "+str(sum(num_inst.values()))+",\t "+str(sum(num_inst_true.values()))+",\t "+str(sum(num_inst_sat.values()))+"\n")
+    debug_file.close()
+
 
 def specific_quantifiers_instantiation_analysis(log_folder, original_file, percentagePrograms, percentageVCs, debug=False):
     if not check_profiling_completes(log_folder, original_file + "_z3_profile.profile"):
