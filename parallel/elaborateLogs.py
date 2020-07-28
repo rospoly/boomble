@@ -4,6 +4,8 @@ import shlex
 import subprocess
 import sys
 import time
+
+import math
 import numpy as np
 import random
 from matplotlib.pyplot import cm
@@ -263,6 +265,27 @@ def check_profiling_completes(logfolder,filename):
         return True
     return False
 
+
+def print_elaborate_profiling(log_folder, file_name, num_instances, num_instances_true, num_instances_sat):
+    profile_file=open(log_folder+file_name+"_elaborate_profile.profile", "w+")
+    tot=0
+    sums=[]
+    for instance in num_instances:
+        sum=num_instances[instance]+num_instances_true[instance]+num_instances_sat[instance]
+        #profile_file.write(instance+": "+str(sum)+", "+str(num_instances[instance])+", "+str(num_instances_true[instance])+", "+str(num_instances_sat[instance])+";\n")
+        tot=tot+sum
+        sums.append(sum)
+
+    for ind, instance in enumerate(num_instances):
+        weight=int(np.sqrt((max(sums)/float(sums[ind])) + 1))
+
+        profile_file.write(instance + ": " + str(weight)+", "+str(sums[ind]) + ", " + str(num_instances[instance]) + ", " + str(
+            num_instances_true[instance]) + ", " + str(num_instances_sat[instance]) + ";\n")
+
+    profile_file.close()
+
+
+
 def global_quantifiers_instantiation_analysis(log_folder, original_file, percentage, debug=True):
     if not check_profiling_completes(log_folder, original_file + "_z3_profile.profile"):
         print("File picked for comparison did not complete profiling.")
@@ -297,6 +320,7 @@ def global_quantifiers_instantiation_analysis(log_folder, original_file, percent
             if debug:
                 num_inst, num_inst_true, num_inst_sat = analyze_single_profile(log_folder,file_name)
                 print_debug_info_Quantifiers(log_folder, file_name, num_inst, num_inst_true, num_inst_sat)
+                print_elaborate_profiling(log_folder, file_name.split(".")[0], num_inst, num_inst_true, num_inst_sat)
 
             sum_num_inst_pos, sum_num_inst_neg, \
             sum_num_inst_true_pos, sum_num_inst_true_neg, \
