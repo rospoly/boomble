@@ -6,4 +6,7 @@ obj/*
 *.dll
 parallel/.idea/
 trace/.idea/
+trace/__pycache__/
+trace/output/
 *.blob
+wrapper/.idea/
