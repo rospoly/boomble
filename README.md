@@ -20,7 +20,7 @@ Currently, the only mutation it supports is the random shuffling of declarations
 8) now you can find the executable(s) in `bin/debug`
 
 # run boomble
-* `boomble -n:<num_of_shuffles> -noMutation File-1.bpl ... File-M.bpl`
+* `bin/debug/../boomble -n:<num_of_shuffles> -noMutation File-1.bpl ... File-M.bpl`
 # notes
 * boomble labels all quantifiers in progressive order: quantifier0, quantifier1, quantifier2, etc.
 * -noMutation is optional, and in case you provide it, boomble creates n identical copy of the input file (with identical labels also).
