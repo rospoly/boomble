@@ -22,7 +22,7 @@ Currently, the only mutation it supports is the random shuffling of declarations
 # run boomble
 * `bin/debug/../boomble -n:<num_of_shuffles> -noMutation File-1.bpl ... File-M.bpl`
 # notes
-* boomble labels all quantifiers in progressive order: quantifier0, quantifier1, quantifier2, etc.
+* boomble labels all quantifiers without a qid in the input program (in progressive order: quantifier0, quantifier1, quantifier2, etc).
 * -noMutation is optional, and in case you provide it, boomble creates n identical copy of the input file (with identical labels also).
 * the resulting shuffles are dumped to a folder called `results` in the current directory. 
 Please note that in case the folder `results` already exists, boomble does not override the folder, 
@@ -31,6 +31,6 @@ and returns an error message.
 # run the quantifier analysis
 In the folder `parallel` in the home directory of boomble there are two Python3 scripts:
 
-1) `parAnalysis` runs `boogie` and `z3` (with profiling and log enabled). The script is standalone and it has a dedicate parser with`-help` option. Just run `python3 parAnalysis.py`.
+1) `parAnalysis` runs `boogie` and `z3` (with profiling and log enabled). The script is standalone and it has a dedicate parser with a`-help` option. Just run `python3 parAnalysis.py` to see the help message.
 
-2) `elaborateLogs.py` runs the quantifier instantiations analysis on the logs produced by `parAnalysis`. The script is standalone and it has a dedicate parser with`-help` option. Just run `python3 elaborateLogs.py`.
+2) `elaborateLogs.py` runs the quantifier instantiations analysis on the logs produced by `parAnalysis`. The script is standalone and it has a dedicate parser with`-help` option. Just run `python3 elaborateLogs.py` to see the help message.
