@@ -262,22 +262,50 @@ counterLimit=[0, 5, 10, 20, 50, 100, 500]
 
 
 trace_path_original="../logs_is_step_a_paxos/.z3-trace_8"
+trace_path_comparisons=["../logs_is_step_a_paxos/.z3-trace_0",
+                        "../logs_is_step_a_paxos/.z3-trace_1",
+                        "../logs_is_step_a_paxos/.z3-trace_2",
+                        "../logs_is_step_a_paxos/.z3-trace_3",
+                        "../logs_is_step_a_paxos/.z3-trace_4",
+                        "../logs_is_step_a_paxos/.z3-trace_5",
+                        "../logs_is_step_a_paxos/.z3-trace_6",
+                        "../logs_is_step_a_paxos/.z3-trace_7",
+                        "../logs_is_step_a_paxos/.z3-trace_9",
+                        "../logs_is_step_a_paxos/.z3-trace_10"]
 
 native_complete_nodes_original = build_graph_nodes(trace_path_original)
-
-print("Total number of nodes original:"+str(len(native_complete_nodes_original)))
-
 native_complete_nodes_original = remove_unknown(native_complete_nodes_original)
 
-print("Running...")
+for trace_path_comparison in trace_path_comparisons:
+    print(ntpath.basename(trace_path_comparison))
 
-print("Total number of nodes original (without unknown):"+str(len(native_complete_nodes_original)))
+    native_complete_nodes_comparison=build_graph_nodes(trace_path_comparison)
 
-for depth in depths:
+    print("Total number of nodes original:"+str(len(native_complete_nodes_original)))
+    print("Total number of nodes comparison:"+str(len(native_complete_nodes_comparison)))
 
-    complete_nodes_original = truncate_tree(depth, native_complete_nodes_original)
-    print("Total number of nodes original (after truncate to depth="+str(depth)+"):" + str(len(complete_nodes_original)))
-    counter_labels_original = build_dictionary_for_edges(complete_nodes_original)
+    print("Running...")
 
-    for limit in counterLimit:
-        plot_single_trace(counter_labels_original,limit,trace_path_original)
+    native_complete_nodes_comparison=remove_unknown(native_complete_nodes_comparison)
+
+    print("Total number of nodes original (without unknown):"+str(len(native_complete_nodes_original)))
+    print("Total number of nodes comparison (without unknown):"+str(len(native_complete_nodes_comparison)))
+
+    for depth in depths:
+
+        complete_nodes_original = truncate_tree(depth, native_complete_nodes_original)
+        complete_nodes_comparison = truncate_tree(depth, native_complete_nodes_comparison)
+
+        print("Total number of nodes original (after truncate to depth="+str(depth)+"):" + str(len(complete_nodes_original)))
+        print("Total number of nodes comparison (after truncate to depth="+str(depth)+"):" + str(len(complete_nodes_comparison)))
+
+        counter_labels_original = build_dictionary_for_edges(complete_nodes_original)
+        counter_labels_comparison = build_dictionary_for_edges(complete_nodes_comparison)
+
+        diff_original_vs_comparison = build_dictionary_for_diff(counter_labels_original, counter_labels_comparison)
+
+        for limit in counterLimit:
+
+            plot_single_trace(counter_labels_original,limit,trace_path_original)
+            plot_single_trace(counter_labels_comparison,limit,trace_path_comparison)
+            plot_single_trace(diff_original_vs_comparison, limit, "diff_"+ntpath.basename(trace_path_original)+"_"+ntpath.basename(trace_path_comparison))
