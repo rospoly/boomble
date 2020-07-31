@@ -107,6 +107,7 @@ def get_label_node(line):
 def get_fingerprint(lines, index):
     if "New-Match:" in lines[index]:
         return ((lines[index].split(",")[0]).split("New-Match:")[1]).strip()
+    return "0xUnknown"
 
 def get_binding(num,lines, index):
     if str(num)+":" in lines[index]:
@@ -254,7 +255,7 @@ def build_graph_nodes(file_path):
                     index, current_node, is_dummy = build_single_instantiation(lines, index, current_node, label)
                     node_index = node_index + 1
     except:
-        print("Something went wrong while parsin the trace.")
+        print("Something went wrong while parsing the trace.")
     finally:
         nodes.insert(0,ground_term)
     print("Done with parsing the trace")
@@ -346,8 +347,9 @@ def plot_single_trace(counter_labels, triggers_original, bindings_original, limi
 
     triggers.close()
     bindings.close()
-    dot.render(output_folder+"Depth_" + str(depth) + "_EdgeThreshold_" + str(
-        limit) + "_OneFather_" + str(onlyOneFather) + "_Strict_" + str(strict), view=False, format="pdf")
+    dot.render(name, view=False, format="pdf")
+    sum_edges=compute_sum_of_all_edges(name)
+    print("Removing all edges with weight < "+str(limit)+", total sum of the weights = "+str(sum_edges))
     # dot.render("output/"+ntpath.basename(trace_path)+"/Depth_"+str(depth)+"_EdgeThreshold_"+str(limit)+"_OneFather_"+str(onlyOneFather)+"_Strict_"+str(strict), view=False, format="gv")
 
 
@@ -362,8 +364,15 @@ def build_dictionary_for_diff(counter_labels_original, counter_labels_comparison
     difference = keys_cmp - keys_orig
     for key in difference:
         counter_label_diff[key] = counter_labels_comparison[key]
-
     return counter_label_diff
+
+def compute_sum_of_all_edges(name):
+    file = open(name, "r").readlines()
+    sum = 0
+    for line in file:
+        if "[label=" in line and not "color" in line:
+            sum = sum + int(line.split("[label=")[1].split("]")[0])
+    return sum
 
 # Merge quantifiers by QID.
 strict = True
@@ -381,9 +390,10 @@ depths = [1000, 10000, 20000, -1]
 # Ignore edges with weights less than:
 counterLimit = [0, 50, 100, 500]
 
-trace_path_original="../logs_is_step_a_paxos_desugared/.z3-trace"
+trace_path_original="./.z3-trace_la"
 
 output_folder="./output/" + ntpath.basename(trace_path_original) + "/"
+
 if os.path.exists(output_folder):
     print("Output Folder already exists")
     exit(-1)
