@@ -120,6 +120,7 @@ def get_binding(num,lines, index):
         while index<len(lines) and ";" not in lines[index]:
             index=index+1
         return binding, index
+    return "", index
 
 def get_index_containing_substring(lines, index, substring):
     if substring in lines[index]:
@@ -138,17 +139,19 @@ def get_trigger(lines, index):
         while index<len(lines) and ", Father:" not in lines[index]:
             index=index+1
         return trigger,index
+    return "", index
 
 def get_fathers(lines, index):
     if "Father:" in lines[index]:
         fathers=lines[index].split(", Father:")[1].strip()
         return fathers.split()
+    return []
 
 def get_enode(line):
     if "EN:" in line:
         enode = (line.split("EN:")[1]).strip()
         return enode
-
+    return ""
 
 def build_single_instantiation(lines, index, current_node, label):
     current_node.set_label(label)
@@ -187,17 +190,19 @@ def get_node_from_finger_print(finger_print, nodes):
 
 def find_father_in_list(nodes, node):
     i = len(nodes) - 1
+    father_exists=False
     while i >= 0:
         for enode_id in nodes[i].enodes:
             for father in node.fathers:
                 if father.id == enode_id:
                     if not father.saturated:
+                        father_exists=True
                         father.saturated = True
                         nodes[i].add_kid(node)
                         if onlyOneFather:
-                            return
+                            return True
         i = i - 1
-    return
+    return father_exists
 
 
 def build_graph_nodes(file_path):
@@ -205,6 +210,10 @@ def build_graph_nodes(file_path):
     nodes = []
     index = 0
     node_index = 0
+
+    ground_term = Node("0x00000000")
+    ground_term.set_trigger("unknown")
+    ground_term.set_label("ground_terms")
 
     try:
         while index < len(lines):
@@ -225,7 +234,9 @@ def build_graph_nodes(file_path):
                         del nodes[node_index]
                     else:
                         index, current_node, is_dummy = build_single_instantiation(lines, index, current_node, label)
-                        find_father_in_list(nodes, current_node)
+                        res=find_father_in_list(nodes, current_node)
+                        if not res:
+                            ground_term.add_kid(current_node)
                         node_index = node_index + 1
             else:
                 while index < len(lines):
@@ -244,6 +255,8 @@ def build_graph_nodes(file_path):
                     node_index = node_index + 1
     except:
         print("Something went wrong while parsin the trace.")
+    finally:
+        nodes.insert(0,ground_term)
     print("Done with parsing the trace")
     return nodes
 
@@ -368,7 +381,7 @@ depths = [1000, 10000, 20000, -1]
 # Ignore edges with weights less than:
 counterLimit = [0, 50, 100, 500]
 
-trace_path_original="./.z3-trace"
+trace_path_original="../logs_is_step_a_paxos_desugared/.z3-trace"
 
 output_folder="./output/" + ntpath.basename(trace_path_original) + "/"
 if os.path.exists(output_folder):
