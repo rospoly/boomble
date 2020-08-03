@@ -1,12 +1,13 @@
 # boomble
 *boomble* is a suite of tools you can use to debug the execution of a set of Boogie programs.  
-*boomble* consists of:
-1) a c# tool used to:
+*boomble* consists of:  
+
+1) a C# tool used to:
   1.1) label quantifiers in a boogie program using the option QID.
-  1.2) shuffle the declarations in a boogie program.
-2) a set of Python scripts (folder parallel) to run Boogie and Z3 in parallel on a set of boogie files.
+  1.2) shuffle the declarations in a boogie program.  
+2) a set of Python scripts (folder parallel) to run Boogie and Z3 in parallel on a set of boogie files (typically coming from point 1).  
 3) a set of Python scripts (folder trace) to debug the execution of Z3. We rely on a custom fork of the original Z3
-that you can find [here](https://github.com/rospoly/z3).
+that you can find [here](https://github.com/rospoly/z3).  
 
 ### requirements
 1) boogie and z3 as global tools (open a terminal and digit `boogie` and `z3` to c
