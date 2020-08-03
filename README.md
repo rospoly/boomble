@@ -1,6 +1,6 @@
 # boomble
-boomble is a suite of tools you can use to debug the execution of a set of Boogie programs.
-boomble consists of:
+*boomble* is a suite of tools you can use to debug the execution of a set of Boogie programs.  
+*boomble* consists of:
 1) a c# tool used to:
   1.1) label quantifiers in a boogie program using the option QID.
   1.2) shuffle the declarations in a boogie program.
