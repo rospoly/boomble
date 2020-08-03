@@ -13,6 +13,7 @@ that you can find [here](https://github.com/rospoly/z3).
 1) boogie and z3 as global tools (open a terminal and digit `boogie` and `z3` to c
 2) python3
 3) [dotnet](https://docs.microsoft.com/en-us/dotnet/core/install/)
+4) (used only for the trace) custom fork of the original Z3 that you can find [here](https://github.com/rospoly/z3).  
 
 ### compile
 1) clone the repo
