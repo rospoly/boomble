@@ -16,11 +16,10 @@ class MyParser(argparse.ArgumentParser):
       sys.exit(1)
 
 
-def process_file(time_out_vc, random_seed, file_folder, file_name, log_folder, z3, z3_options, boogie_options):
+def process_file(random_seed, file_folder, file_name, log_folder, z3, boogie, z3_options, boogie_options):
 	print("Currently analyzing: "+str(file_name))
 	name_no_ext=file_name.split(".")[0]
-	f=("boogie "+
-	   ("-p:O:timeout="+time_out_vc+" " if int(timeout)!=-1 else "") +
+	f=((boogie+" " if not boogie=="" else "boogie ") +
 	   ("-proverOpt:PROVER_PATH="+z3+" " if not z3=="" else "") +
 	   	"-p:O:sat.random_seed="+random_seed+" "
 		"-p:O:nlsat.seed="+random_seed+" "
@@ -42,7 +41,6 @@ def process_file(time_out_vc, random_seed, file_folder, file_name, log_folder, z
 	log_file.close()
 	###########################################
 	f = ((z3+" " if not z3=="" else "z3 ") +
-		 ("-t:"+time_out_vc+" " if int(timeout)!=-1 else "") +
 		 "smt.qi.profile=true "
 		 "sat.random_seed=" + random_seed + " "
 		 "nlsat.seed=" + random_seed + " "
@@ -75,11 +73,12 @@ parser.add_argument('-seed', type=int, metavar='<seed_value>',
 						 'In case you provide -1, we run z3 with a different seed for each instance (default 0)', default=0)
 parser.add_argument('-cores', type=int, metavar='<num_of_cores>',
                     help='the number of cores to use (default all)', default=multiprocessing.cpu_count())
-parser.add_argument('-timeout', type=int, metavar='<timeout_per_single_vc>',
-                    help='(soft) timeout in milliseconds, it kills the current VC. '
-						 'In case you provide -1, we run z3 with no timeout  (default 60000)', default=60000)
+
+parser.add_argument('-boogie', type=str, metavar='<path to boogie>',
+                    help='Path to Boogie executable. In case you dont provide the path to Boogie executable, we use the global Boogie.', default="")
+
 parser.add_argument('-z3', type=str, metavar='<path to Z3>',
-                    help='Path to Z3. In case you dont provide the path to z3, Boogie relies on the global z3.', default="")
+                    help='Path to Z3 executable. In case you dont provide the path to Boogie executable, Boogie relies on the global z3.', default="")
 
 parser.add_argument('-z3opt', nargs='*', metavar='<list_of_options_for_Z3>',
 					help='Options for Z3. In Boogie the option is given using -p:0:<option>. (e.g. smt.array.extensional=false)', default="")
@@ -92,8 +91,8 @@ args = parser.parse_args()
 log = args.log
 results = args.res
 random_seed = args.seed
-timeout = str(args.timeout)
 z3 = args.z3
+boogie = args.boogie
 num_cores = min(int(args.cores),multiprocessing.cpu_count())
 z3_options=args.z3opt
 boogie_options=args.boogieopt
@@ -118,9 +117,9 @@ for index_file_name, file_name in enumerate(file_set):
 	if file_name.endswith(".bpl"):
 		if random_seed==-1:
 			tmp_seed=str(int(seed_sequence[index_file_name]))
-			pool.apply_async(process_file, [timeout, tmp_seed, results, file_name, log, z3, z3_options, boogie_options])
+			pool.apply_async(process_file, [tmp_seed, results, file_name, log, z3, boogie, z3_options, boogie_options])
 		else:
-			pool.apply_async(process_file, [timeout, str(random_seed), results, file_name, log, z3, z3_options, boogie_options])
+			pool.apply_async(process_file, [str(random_seed), results, file_name, log, z3, boogie, z3_options, boogie_options])
 
 pool.close()
 pool.join()

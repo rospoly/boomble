@@ -322,7 +322,7 @@ def log_trigger_or_binding_line(file, source, dest, trigger_list):
     file.write("######\n")
     file.flush()
 
-def plot_single_trace(counter_labels, triggers_original, bindings_original, limit, trace_path):
+def plot_single_trace(counter_labels, triggers_original, bindings_original, limit):
     dot = Digraph(comment='Graph', strict=strict)
     name=output_folder+"Depth_" + str(depth) + \
          "_EdgeThreshold_" + str(limit) + "_OneFather_" + str(onlyOneFather) + "_Strict_" + str(strict)
@@ -350,7 +350,6 @@ def plot_single_trace(counter_labels, triggers_original, bindings_original, limi
     dot.render(name, view=False, format="pdf")
     sum_edges=compute_sum_of_all_edges(name)
     print("Removing all edges with weight < "+str(limit)+", total sum of the weights = "+str(sum_edges))
-    # dot.render("output/"+ntpath.basename(trace_path)+"/Depth_"+str(depth)+"_EdgeThreshold_"+str(limit)+"_OneFather_"+str(onlyOneFather)+"_Strict_"+str(strict), view=False, format="gv")
 
 
 def build_dictionary_for_diff(counter_labels_original, counter_labels_comparison):
