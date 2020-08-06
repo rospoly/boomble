@@ -389,7 +389,7 @@ depths = [1000, 10000, 20000, -1]
 # Ignore edges with weights less than:
 counterLimit = [0, 50, 100, 500]
 
-trace_path_original="./.z3-trace_la"
+trace_path_original="./.z3-trace"
 
 output_folder="./output/" + ntpath.basename(trace_path_original) + "/"
 
@@ -418,4 +418,4 @@ for depth in depths:
     counter_labels_original, triggers_original, bindings_original = build_dictionary_for_edges(complete_nodes_original)
 
     for limit in counterLimit:
-        plot_single_trace(counter_labels_original, triggers_original, bindings_original, limit, trace_path_original)
+        plot_single_trace(counter_labels_original, triggers_original, bindings_original, limit)

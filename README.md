@@ -39,8 +39,17 @@ Please note that in case the folder `results` already exists, boomble does not o
 
 In the folder `parallel` there are two Python3 scripts:
 
-1) `parAnalysis` runs `boogie` and `z3` (with profiling and log enabled). The script is standalone and it has a dedicate parser with a`-help` option. Just run `python3 parAnalysis.py` to see the help message.
+1) `parAnalysis.py` runs `boogie` and `z3` (with profiling and log enabled). The script is standalone and it has a dedicate parser with a`-help` option. Just run `python3 parAnalysis.py` to see the help message.
 
 2) `elaborateLogs.py` runs the quantifier instantiations analysis on the logs produced by `parAnalysis`. The script is standalone and it has a dedicate parser with`-help` option. Just run `python3 elaborateLogs.py` to see the help message.
 
-# run custom Z3 with profiling
+# run custom Z3 with profiling and create the casuality graph.
+
+Note: in this section we assume you have the following custom Z3 implementation (link).
+
+In the folder `trace` there are two Python3 scripts:
+
+1) `casuality_graph.py` creates a casuality graph between quantifier instantiations. The script needs
+a custom trace from Z3. 
+
+2) `causality_graph_comparison.py` compares two or more traces, it creates a diff graph for each pair of traces.
