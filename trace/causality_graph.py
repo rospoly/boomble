@@ -1,8 +1,8 @@
 import os
-
 from graphviz import Digraph
 import ntpath
 
+#We saturate the father the first time the node match a father.
 class Father:
     def __init__(self, id):
         self.id = id
@@ -196,6 +196,7 @@ def find_father_in_list(nodes, node):
         for enode_id in nodes[i].enodes:
             for father in node.fathers:
                 if father.id == enode_id:
+                    #In case the father has been previously saturated you cannot use it again.
                     if not father.saturated:
                         father_exists=True
                         father.saturated = True
@@ -231,7 +232,6 @@ def build_graph_nodes(file_path):
                     current_node = nodes[node_index]
                     fp, label = get_label_node(lines[index])
                     if fp != current_node.finger_print:
-                        # print("Finger print does not match! Ok if trace is without dummies.")
                         del nodes[node_index]
                     else:
                         index, current_node, is_dummy = build_single_instantiation(lines, index, current_node, label)
@@ -373,23 +373,23 @@ def compute_sum_of_all_edges(name):
             sum = sum + int(line.split("[label=")[1].split("]")[0])
     return sum
 
-# Merge quantifiers by QID.
+# Merge quantifiers by QID. Usefull when playing with Move-Prover benchmarks.
 strict = True
-# Remove instantiations that are incomplete (due to timeout)
+# Remove instantiations that are incomplete (due to the timeout)
 removeUnknown = True
 # Consider transitive relations between quantifiers instantiation(true) or only direct dependencies (false).
 soundRelationship = False
 # Connect with all fathers. In case it is False, we climb up to the root to look for "all the fathers".
-# In case you set to True, we consider only the closest father.
+# In case you set to True, we consider only the closest father (unsound but faster).
 onlyOneFather = False
 # In case depth is !=-1 we cut from the root, or from the leaves.
 CutBeginTrueCutLeavesFalse = True
 # Depth of the analysis. -1 means all nodes.
 depths = [1000, 10000, 20000, -1]
 # Ignore edges with weights less than:
-counterLimit = [0, 50, 100, 500]
+counterLimit = [0, 50, 100, 500, 1000]
 
-trace_path_original="./.z3-trace"
+trace_path_original="./.z3-traceDDCredential_T_B"
 
 output_folder="./output/" + ntpath.basename(trace_path_original) + "/"
 

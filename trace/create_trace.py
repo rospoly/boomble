@@ -20,7 +20,7 @@ parser.add_argument('files', type=str, metavar='<path_to_programs>',
 parser.add_argument('-timeout', type=str, metavar='<timeout>',
                     help='timeout in seconds (default=30s)', default=30)
 parser.add_argument('-opt', nargs='*', metavar='<option_for_the_trace>',
-					help='Options for the trace: instance, bindings, dummy, causality, causality_details', default="")
+					help='Options for the trace: instance, bindings, dummy, causality, triggers', default="")
 args = parser.parse_args()
 
 file_set = sorted(os.listdir(args.files))

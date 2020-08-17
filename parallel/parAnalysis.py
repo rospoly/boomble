@@ -65,26 +65,26 @@ def process_file(random_seed, file_folder, file_name, log_folder, z3, boogie, z3
 parser = MyParser(description='Run Boogie and Z3 on a set of programs. '
 							  'By default, the analysis is done in parallel using all the available cores.')
 parser.add_argument('res', type=str, metavar='<path_to_programs>',
-                    help='the path to the folder with the boogie programs to analyze')
+                    help='the path to the folder with the boogie programs you want to verify')
 parser.add_argument('log', type=str, metavar='<path_for_logs>',
-                    help='the path where to dump the log files (the folder has to be empty)')
+                    help='the output path where to dump the log files (the folder has to be empty)')
 parser.add_argument('-seed', type=int, metavar='<seed_value>',
-                    help='the one seed to use for all instances of z3. '
+                    help='the unique seed to use for all instances of z3. '
 						 'In case you provide -1, we run z3 with a different seed for each instance (default 0)', default=0)
 parser.add_argument('-cores', type=int, metavar='<num_of_cores>',
                     help='the number of cores to use (default all)', default=multiprocessing.cpu_count())
 
 parser.add_argument('-boogie', type=str, metavar='<path to boogie>',
-                    help='Path to Boogie executable. In case you dont provide the path to Boogie executable, we use the global Boogie.', default="")
+                    help='Path to the Boogie executable. In case you dont provide the path to Boogie executable, we use the global Boogie.', default="")
 
 parser.add_argument('-z3', type=str, metavar='<path to Z3>',
-                    help='Path to Z3 executable. In case you dont provide the path to Boogie executable, Boogie relies on the global z3.', default="")
+                    help='Path to the Z3 executable. In case you dont provide the path to Boogie executable, Boogie relies on the global z3.', default="")
 
 parser.add_argument('-z3opt', nargs='*', metavar='<list_of_options_for_Z3>',
-					help='Options for Z3. In Boogie the option is given using -p:0:<option>. (e.g. smt.array.extensional=false)', default="")
+					help='Options for Z3. From Boogie the option is given to Z3 using -p:0:<option>. (e.g. smt.array.extensional=false)', default="")
 
 parser.add_argument('-boogieopt', nargs='*', metavar='<list_of_options_for_Boogie>',
-					help='Options for Boogie. The option is given as it is in the command line. (e.g. traceTimes)', default="")
+					help='Options for Boogie. The option is given as it is in the command line. (e.g. traceTimes useArrayTheory)', default="")
 
 args = parser.parse_args()
 
