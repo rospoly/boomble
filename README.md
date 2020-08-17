@@ -47,7 +47,7 @@ In the folder `parallel` there are two Python3 scripts:
 
 2) `elaborateLogs.py` runs the quantifier instantiations analysis on the logs produced by `parAnalysis`. The script is standalone and it has a dedicate parser with`-help` option. Just run `python3 elaborateLogs.py` to see the help message.
 
-# run custom Z3 with profiling and create the casuality graph
+# run Z3 with profiling and create the casuality graph
 
 Note: in this section we assume you have the following custom Z3 implementation (link).
 
