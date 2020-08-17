@@ -47,14 +47,14 @@ In the folder `parallel` there are two Python3 scripts:
 
 2) `elaborateLogs.py` runs the quantifier instantiations analysis on the logs produced by `parAnalysis`. The script is standalone and it has a dedicate parser with`-help` option. Just run `python3 elaborateLogs.py` to see the help message.
 
-# run custom Z3 with profiling and create the casuality graph.
+# run custom Z3 with profiling and create the casuality graph
 
 Note: in this section we assume you have the following custom Z3 implementation (link).
 
 In the folder `trace` there are two Python3 scripts:
 
 1) `casuality_graph.py` creates a casuality graph between quantifier instantiations. The script needs
-a custom trace from Z3 (instruction for the custom trace [link](https://github.com/rospoly/z3/blob/prototype/README.md)).  
+a custom trace from Z3 (instruction for the custom trace [here](https://github.com/rospoly/z3/blob/prototype/README.md)).  
 You need to compile [Z3 master](https://github.com/Z3Prover/z3) with `cmake -DCMAKE_BUILD_TYPE=Release -DZ3_ENABLE_TRACING_FOR_NON_DEBUG=TRUE`.  
 See [link](https://github.com/Z3Prover/z3/blob/master/README-CMake.md) for more details.
 
