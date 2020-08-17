@@ -53,9 +53,11 @@ Note: in this section we assume you have the following custom Z3 implementation 
 
 In the folder `trace` there are two Python3 scripts:
 
-1) `casuality_graph.py` creates a casuality graph between quantifier instantiations. The script needs
-a custom trace from Z3 (instruction for the custom trace [here](https://github.com/rospoly/z3/blob/prototype/README.md)).  
-You need to compile [Z3 master](https://github.com/Z3Prover/z3) with `cmake -DCMAKE_BUILD_TYPE=Release -DZ3_ENABLE_TRACING_FOR_NON_DEBUG=TRUE`.  
+1) `casuality_graph.py` creates a casuality graph between quantifier instantiations.  
+The script needs a debugging trace from Z3 (instruction for the debugging trace [here](https://github.com/rospoly/z3/blob/prototype/README.md)).  
+The debugging trace is available only when Z3 is compiled with the option DZ3_ENABLE_TRACING_FOR_NON_DEBUG set to true. Note, this is not the case for the standard release executable of Z3.  
+You need to compile [Z3 master](https://github.com/Z3Prover/z3) with  
+`cmake -DCMAKE_BUILD_TYPE=Release -DZ3_ENABLE_TRACING_FOR_NON_DEBUG=TRUE`.
 See [link](https://github.com/Z3Prover/z3/blob/master/README-CMake.md) for more details.
 
 2) `causality_graph_comparison.py` compares two or more traces, it creates a diff graph for each pair of traces.
