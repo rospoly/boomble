@@ -2,6 +2,8 @@ import os
 from graphviz import Digraph
 import ntpath
 
+global_fathers_dict={}
+
 #We saturate the father the first time the node match a father.
 class Father:
     def __init__(self, id):
@@ -177,6 +179,8 @@ def build_single_instantiation(lines, index, current_node, label):
             print("Unknown property for a node!")
             exit(-1)
         index = index + 1
+    for enode in current_node.enodes:
+        global_fathers_dict[enode]=current_node
     return index, current_node, (current_node.istrue or current_node.issat)
 
 
@@ -189,21 +193,18 @@ def get_node_from_finger_print(finger_print, nodes):
     return None
 
 
-def find_father_in_list(nodes, node):
-    i = len(nodes) - 1
+def find_father_in_list(node):
     father_exists=False
-    while i >= 0:
-        for enode_id in nodes[i].enodes:
-            for father in node.fathers:
-                if father.id == enode_id:
-                    #In case the father has been previously saturated you cannot use it again.
-                    if not father.saturated:
-                        father_exists=True
-                        father.saturated = True
-                        nodes[i].add_kid(node)
-                        if onlyOneFather:
-                            return True
-        i = i - 1
+    for father in node.fathers:
+        #In case the father has been previously saturated you cannot use it again.
+        if not father.saturated:
+            potential_father=global_fathers_dict.get(father.id)
+            if not potential_father==None:
+                father_exists=True
+                father.saturated = True
+                potential_father.add_kid(node)
+                if onlyOneFather:
+                    return True
     return father_exists
 
 
@@ -235,7 +236,7 @@ def build_graph_nodes(file_path):
                         del nodes[node_index]
                     else:
                         index, current_node, is_dummy = build_single_instantiation(lines, index, current_node, label)
-                        res=find_father_in_list(nodes, current_node)
+                        res=find_father_in_list(current_node)
                         if not res:
                             ground_term.add_kid(current_node)
                         node_index = node_index + 1
@@ -389,7 +390,7 @@ depths = [1000, 10000, 20000, -1]
 # Ignore edges with weights less than:
 counterLimit = [0, 50, 100, 500, 1000]
 
-trace_path_original="./.z3-traceDDCredential_T_B"
+trace_path_original=".z3-trace_mul"
 
 output_folder="./output/" + ntpath.basename(trace_path_original) + "/"
 
