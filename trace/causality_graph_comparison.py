@@ -1,74 +1,105 @@
-from graphviz import Digraph
+from setup import strict,depths,counterLimit,onlyOneFather,soundRelationship,removeUnknown,CutBeginTrueCutLeavesFalse
+import os
 import ntpath
+from collections import Counter
 from causality_graph import build_graph_nodes, build_dictionary_for_edges, remove_unknown, truncate_tree, \
     build_dictionary_for_diff, plot_single_trace
 
-# Merge quantifiers by QID.
-strict = True
-# Remove instantiations that are incomplete (due to timeout)
-removeUnknown = True
-# Consider transitive relations between quantifiers instantiation(true) or only direct dependencies (false).
-soundRelationship = False
-# Connect with all fathers. In case it is False, we climb up to the root to look for "all the fathers".
-# In case you set to True, we consider only the closest father.
-onlyOneFather = False
-# In case depth is !=-1 we cut from the root, or from the leaves.
-CutBeginTrueCutLeavesFalse = True
-# Depth of the analysis. -1 means all nodes.
-depths = [1000, 10000, 20000, -1]
-# Ignore edges with weights less than:
-counterLimit = [0, 50, 100, 500]
+def build_dictionary_for_diff_lists(counter_labels_original, counter_labels_comparison):
+    counter_label_diff = {}
+    for key_original in counter_labels_original:
+        comp_value = Counter(counter_labels_comparison.get(key_original, []))
+        diff=comp_value - Counter(counter_labels_original[key_original])
+        counter_label_diff[key_original] = list(diff.elements())
 
-trace_path_original = "./.z3-trace"
-output_folder="./output/" + ntpath.basename(trace_path_original) + "/"
+    keys_orig = counter_labels_original.keys()
+    keys_cmp = counter_labels_comparison.keys()
+    difference = keys_cmp - keys_orig
+    for key in difference:
+        counter_label_diff[key] = counter_labels_comparison[key]
+    return counter_label_diff
 
-trace_path_comparisons = []
-for i in range(0, 101):
-    trace_path_comparisons.append("../logs_is_step_a_paxos_desugared/.z3-trace-shuffle" + str(i))
+def create_output_path(output_folder, name_original):
+    if os.path.exists(output_folder + name_original):
+        print("Output Folder already exists: " + str(name_original))
+        exit(-1)
+    else:
+        os.makedirs(output_folder + name_original)
 
-print(trace_path_comparisons)
+if __name__ == "__main__":
 
-native_complete_nodes_original = build_graph_nodes(trace_path_original)
-counter_labels_original, triggers_original, bindings_original = build_dictionary_for_edges(
-    native_complete_nodes_original)
+    folder_path_comparison = "./paxos/"
+    trace_path_original = ".z3-trace-shuffle19"
+    output_folder="./output/"
 
-native_complete_nodes_original = remove_unknown(native_complete_nodes_original)
+    name_original = ntpath.basename(trace_path_original).replace(".", "")
 
-for trace_path_comparison in trace_path_comparisons:
+    create_output_path(output_folder, name_original)
 
-    print(ntpath.basename(trace_path_comparison))
+    trace_path_comparisons = []
 
-    native_complete_nodes_comparison = build_graph_nodes(trace_path_comparison)
+    for file in os.listdir(folder_path_comparison):
+        if ".z3-trace" in file:
+            trace_path_comparisons.append(folder_path_comparison+file)
 
-    print("Total number of nodes original:" + str(len(native_complete_nodes_original)))
-    print("Total number of nodes comparison:" + str(len(native_complete_nodes_comparison)))
 
-    print("Running...")
+    native_complete_nodes_original = build_graph_nodes(folder_path_comparison+trace_path_original)
+    counter_labels_original, triggers_original, bindings_original = build_dictionary_for_edges(
+        native_complete_nodes_original)
 
-    native_complete_nodes_comparison = remove_unknown(native_complete_nodes_comparison)
+    native_complete_nodes_original = remove_unknown(native_complete_nodes_original)
 
-    print("Total number of nodes original (without unknown):" + str(len(native_complete_nodes_original)))
-    print("Total number of nodes comparison (without unknown):" + str(len(native_complete_nodes_comparison)))
 
-    for depth in depths:
+    for trace_path_comparison in trace_path_comparisons:
 
-        complete_nodes_original = truncate_tree(depth, native_complete_nodes_original)
-        complete_nodes_comparison = truncate_tree(depth, native_complete_nodes_comparison)
+        name_comparison = ntpath.basename(trace_path_comparison).replace(".", "")
 
-        print("Total number of nodes original (after truncate to depth=" + str(depth) + "):"
-              + str(len(complete_nodes_original)))
-        print("Total number of nodes comparison (after truncate to depth=" + str(depth) + "):"
-              + str(len(complete_nodes_comparison)))
+        if name_comparison==name_original:
+            continue
+        create_output_path(output_folder, name_comparison)
 
-        counter_labels_original, triggers_original, bindings_original = build_dictionary_for_edges(complete_nodes_original)
-        counter_labels_comparison, triggers_comparison, bindings_comparison = build_dictionary_for_edges(complete_nodes_comparison)
+        print(name_comparison)
 
-        diff_original_vs_comparison_labels      = build_dictionary_for_diff(counter_labels_original, counter_labels_comparison)
-        diff_original_vs_comparison_triggers    = build_dictionary_for_diff(triggers_original, triggers_comparison)
-        diff_original_vs_comparison_bindings    = build_dictionary_for_diff(bindings_original, bindings_comparison)
+        name_diff = "diff_" + name_original + "_" + name_comparison
 
-        for limit in counterLimit:
-            plot_single_trace(counter_labels_original, triggers_original, bindings_original, limit, )
-            plot_single_trace(counter_labels_comparison, triggers_comparison, bindings_comparison, limit, trace_path_comparison)
-            plot_single_trace(diff_original_vs_comparison_labels, diff_original_vs_comparison_triggers,
-                              diff_original_vs_comparison_triggers, limit)
+        create_output_path(output_folder, name_diff)
+
+        native_complete_nodes_comparison = build_graph_nodes(trace_path_comparison)
+
+        print("Total number of nodes original:" + str(len(native_complete_nodes_original)))
+        print("Total number of nodes comparison:" + str(len(native_complete_nodes_comparison)))
+
+        print("Running...")
+
+        native_complete_nodes_comparison = remove_unknown(native_complete_nodes_comparison)
+
+        print("Total number of nodes original (without unknown):" + str(len(native_complete_nodes_original)))
+        print("Total number of nodes comparison (without unknown):" + str(len(native_complete_nodes_comparison)))
+
+        for depth in depths:
+
+            complete_nodes_original = truncate_tree(depth, native_complete_nodes_original)
+            complete_nodes_comparison = truncate_tree(depth, native_complete_nodes_comparison)
+
+            print("Total number of nodes original (after truncate to depth=" + str(depth) + "):"
+                  + str(len(complete_nodes_original)))
+            print("Total number of nodes comparison (after truncate to depth=" + str(depth) + "):"
+                  + str(len(complete_nodes_comparison)))
+
+            counter_labels_original, triggers_original, bindings_original = build_dictionary_for_edges(complete_nodes_original)
+            counter_labels_comparison, triggers_comparison, bindings_comparison = build_dictionary_for_edges(complete_nodes_comparison)
+
+            diff_original_vs_comparison_labels      = build_dictionary_for_diff(counter_labels_original, counter_labels_comparison)
+            diff_original_vs_comparison_triggers    = build_dictionary_for_diff_lists(triggers_original, triggers_comparison)
+            diff_original_vs_comparison_bindings    = build_dictionary_for_diff_lists(bindings_original, bindings_comparison)
+
+            for limit in counterLimit:
+
+                final_path_original = output_folder+ name_original + "/"+"Depth_" + str(depth) + "_EdgeThreshold_" + str(limit)
+                final_path_comparison = output_folder + name_comparison + "/" + "Depth_" + str(depth) + "_EdgeThreshold_" + str(limit)
+                final_path_diff = output_folder + name_diff+ "/" + "Depth_" + str(depth) + "_EdgeThreshold_" + str(limit)
+
+                plot_single_trace(final_path_original, counter_labels_original, triggers_original, bindings_original, limit)
+                plot_single_trace(final_path_comparison, counter_labels_comparison, triggers_comparison, bindings_comparison, limit)
+                plot_single_trace(final_path_diff, diff_original_vs_comparison_labels, diff_original_vs_comparison_triggers,
+                                  diff_original_vs_comparison_triggers, limit)

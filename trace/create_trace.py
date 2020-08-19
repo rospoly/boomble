@@ -32,7 +32,7 @@ for index_file_name, file_name in enumerate(file_set):
     if file_name.endswith(".smt2"):
         shuffle_name=ntpath.basename(file_name)
         print("Start with "+str(shuffle_name))
-        f = (z3 +" -T:" + time_out + " " if int(time_out) != -1 else "")
+        f = (z3 +" -T:" + str(time_out) + " " if int(time_out) != -1 else "")
         for val in opt:
             f= f+ "-tr:"+val+" "
         f=f+args.files+file_name

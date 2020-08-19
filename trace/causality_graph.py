@@ -1,6 +1,7 @@
 import os
 from graphviz import Digraph
 import ntpath
+from setup import strict,depths,counterLimit,onlyOneFather,soundRelationship,removeUnknown,CutBeginTrueCutLeavesFalse
 
 global_fathers_dict={}
 
@@ -323,10 +324,8 @@ def log_trigger_or_binding_line(file, source, dest, trigger_list):
     file.write("######\n")
     file.flush()
 
-def plot_single_trace(counter_labels, triggers_original, bindings_original, limit):
+def plot_single_trace(name, counter_labels, triggers_original, bindings_original, limit):
     dot = Digraph(comment='Graph', strict=strict)
-    name=output_folder+"Depth_" + str(depth) + \
-         "_EdgeThreshold_" + str(limit) + "_OneFather_" + str(onlyOneFather) + "_Strict_" + str(strict)
     triggers=open(name+"_triggers.txt","w+")
     bindings=open(name+"_bindings.txt","w+")
     for val in counter_labels:
@@ -352,7 +351,6 @@ def plot_single_trace(counter_labels, triggers_original, bindings_original, limi
     sum_edges=compute_sum_of_all_edges(name)
     print("Removing all edges with weight < "+str(limit)+", total sum of the weights = "+str(sum_edges))
 
-
 def build_dictionary_for_diff(counter_labels_original, counter_labels_comparison):
     counter_label_diff = {}
     for key_original in counter_labels_original:
@@ -374,49 +372,38 @@ def compute_sum_of_all_edges(name):
             sum = sum + int(line.split("[label=")[1].split("]")[0])
     return sum
 
-# Merge quantifiers by QID. Usefull when playing with Move-Prover benchmarks.
-strict = True
-# Remove instantiations that are incomplete (due to the timeout)
-removeUnknown = True
-# Consider transitive relations between quantifiers instantiation(true) or only direct dependencies (false).
-soundRelationship = False
-# Connect with all fathers. In case it is False, we climb up to the root to look for "all the fathers".
-# In case you set to True, we consider only the closest father (unsound but faster).
-onlyOneFather = False
-# In case depth is !=-1 we cut from the root, or from the leaves.
-CutBeginTrueCutLeavesFalse = True
-# Depth of the analysis. -1 means all nodes.
-depths = [1000, 10000, 20000, -1]
-# Ignore edges with weights less than:
-counterLimit = [0, 50, 100, 500, 1000]
+if __name__ == "__main__":
 
-trace_path_original=".z3-trace_mul"
+    trace_path_original="./paxos/.z3-trace-shuffle19"
 
-output_folder="./output/" + ntpath.basename(trace_path_original) + "/"
+    name_original = ntpath.basename(trace_path_original).replace(".", "")
 
-if os.path.exists(output_folder):
-    print("Output Folder already exists")
-    exit(-1)
-else:
-    os.makedirs(output_folder)
+    output_folder="./output/" + name_original + "/"
 
-native_complete_nodes_original = build_graph_nodes(trace_path_original)
+    if os.path.exists(output_folder):
+        print("Output Folder already exists")
+        exit(-1)
+    else:
+        os.makedirs(output_folder)
 
-print("Total number of nodes original:"+str(len(native_complete_nodes_original)))
+    native_complete_nodes_original = build_graph_nodes(trace_path_original)
 
-native_complete_nodes_original = remove_unknown(native_complete_nodes_original)
+    print("Total number of nodes original:"+str(len(native_complete_nodes_original)))
 
-print("Running...")
+    native_complete_nodes_original = remove_unknown(native_complete_nodes_original)
 
-print("Total number of nodes original (without unknown):"+str(len(native_complete_nodes_original)))
+    print("Running...")
+
+    print("Total number of nodes original (without unknown):"+str(len(native_complete_nodes_original)))
 
 
 
-for depth in depths:
+    for depth in depths:
 
-    complete_nodes_original = truncate_tree(depth, native_complete_nodes_original)
-    print("Total number of nodes original (after truncate to depth="+str(depth)+"):" + str(len(complete_nodes_original)))
-    counter_labels_original, triggers_original, bindings_original = build_dictionary_for_edges(complete_nodes_original)
+        complete_nodes_original = truncate_tree(depth, native_complete_nodes_original)
+        print("Total number of nodes original (after truncate to depth="+str(depth)+"):" + str(len(complete_nodes_original)))
+        counter_labels_original, triggers_original, bindings_original = build_dictionary_for_edges(complete_nodes_original)
 
-    for limit in counterLimit:
-        plot_single_trace(counter_labels_original, triggers_original, bindings_original, limit)
+        for limit in counterLimit:
+            final_path_original = output_folder + "/" + "Depth_" + str(depth) + "_EdgeThreshold_" + str(limit)
+            plot_single_trace(final_path_original, counter_labels_original, triggers_original, bindings_original, limit)
