@@ -1,4 +1,6 @@
 import os
+import sys
+
 from graphviz import Digraph
 import ntpath
 from setup import strict,depths,counterLimit,onlyOneFather,soundRelationship,removeUnknown,CutBeginTrueCutLeavesFalse
@@ -374,7 +376,8 @@ def compute_sum_of_all_edges(name):
 
 if __name__ == "__main__":
 
-    trace_path_original="./paxos/.z3-trace-shuffle19"
+    trace_path_original=sys.argv[1]
+    #"./paxos/.z3-trace-shuffle19"
 
     name_original = ntpath.basename(trace_path_original).replace(".", "")
 
